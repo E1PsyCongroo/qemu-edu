@@ -1,3 +1,6 @@
 [submodule "rt-thread"]
 	path = rt-thread
 	url = https://github.com/RT-Thread/rt-thread.git
+[submodule "testsuits-for-oskernel"]
+	path = testsuits-for-oskernel
+	url = git@github.com:E1PsyCongroo/testsuits-for-oskernel.git
