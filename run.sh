@@ -48,8 +48,8 @@ if ! docker image inspect "$image_name" &>/dev/null; then
         "$script_dir"
 fi
 
-docker run -dit --rm -v .:/code -w /code --name "$container_name" \
-    --network host --privileged "$image_name" bash
+docker run -dit --rm -v .:/code -w /code \
+    --name "$container_name" --network host "$image_name" bash
 docker exec "$container_name" \
     NPROC=8 make -C testsuits-for-oskernel sdcard
 docker ps -a -f "name=$container_name"
