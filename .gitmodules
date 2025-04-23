@@ -1,6 +1,3 @@
-[submodule "rt-thread"]
-path = rt-thread
-url = https://github.com/E1PsyCongroo/rt-thread.git
 [submodule "testsuits-for-oskernel"]
 path = testsuits-for-oskernel
 url = https://github.com/E1PsyCongroo/testsuits-for-oskernel.git
