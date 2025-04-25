@@ -1,5 +1,5 @@
 /*
- t Copyright (c) 2006-2025 RT-Thread Development Team
+ * Copyright (c) 2006-2025 RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,6 +17,9 @@
  * 2023-11-17     xqyjlj       add process group and session support
  * 2023-11-30     Shell        Fix sys_setitimer() and exit(status)
  */
+#include "lwp_syscall.h"
+#include "sys/unistd.h"
+#include <stddef.h>
 #define __RT_IPC_SOURCE__
 #define _GNU_SOURCE
 
@@ -530,6 +533,27 @@ ssize_t sys_write(int fd, const void *buf, size_t nbyte)
     ssize_t ret = write(fd, buf, nbyte);
     return (ret < 0 ? GET_ERRNO() : ret);
 #endif
+}
+
+ssize_t sys_writev(int fd, void *user_iovec, int iovcnt) {
+    struct iovec *iovec = kmem_get(sizeof(struct iovec) * iovcnt);
+    if (lwp_get_from_user(iovec, user_iovec, sizeof(struct iovec) * iovcnt) != sizeof(struct iovec) * iovcnt) {
+        return -1;
+    }
+
+    ssize_t cnt = 0;
+    for (int i = 0; i < iovcnt; i++) {
+        void *buffer = kmem_get(iovec[i].iov_len);
+        lwp_get_from_user(buffer, iovec[i].iov_base, iovec[i].iov_len);
+        write(fd, buffer, iovec[i].iov_len);
+        kmem_put(buffer);
+        
+        cnt += iovec[i].iov_len;
+    }
+
+    kmem_put(iovec);
+
+    return cnt;
 }
 
 /**
@@ -1096,7 +1120,7 @@ quit:
  *
  * @see sys_open(), sys_remove(), unlink()
  */
-sysret_t sys_unlink(const char *pathname)
+sysret_t sys_unlinkat(int dirfd, const char *pathname)
 {
 #ifdef ARCH_MM_MMU
     int ret = -1;
@@ -3333,18 +3357,13 @@ fail:
 
 #ifdef ARCH_MM_MMU
 
-long _sys_clone(void *arg[])
-{
+rt_weak long _sys_clone_args(unsigned long flags, void *user_stack, int *new_tid, void *tls, int *clear_tid) {
     struct rt_lwp *lwp = 0;
     rt_thread_t thread = RT_NULL;
     rt_thread_t self = RT_NULL;
     int tid = 0;
     rt_err_t err;
 
-    unsigned long flags = 0;
-    void *user_stack = RT_NULL;
-    int *new_tid = RT_NULL;
-    void *tls = RT_NULL;
     /*
        musl call flags (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND
        | CLONE_THREAD | CLONE_SYSVSEM | CLONE_SETTLS
@@ -3352,21 +3371,11 @@ long _sys_clone(void *arg[])
        */
 
     /* check args */
-    if (!lwp_user_accessable(arg, sizeof(void *[SYS_CLONE_ARGS_NR])))
-    {
-        return -EFAULT;
-    }
-
-    flags = (unsigned long)(size_t)arg[0];
     if ((flags & (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_THREAD | CLONE_SYSVSEM))
             != (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_THREAD | CLONE_SYSVSEM))
     {
         return -EINVAL;
     }
-
-    user_stack = arg[1];
-    new_tid = (int *)arg[2];
-    tls = (void *)arg[3];
 
     if ((flags & CLONE_PARENT_SETTID) == CLONE_PARENT_SETTID)
     {
@@ -3421,7 +3430,7 @@ long _sys_clone(void *arg[])
     }
     if ((flags & CLONE_CHILD_CLEARTID) == CLONE_CHILD_CLEARTID)
     {
-        thread->clear_child_tid = (int *)arg[4];
+        thread->clear_child_tid = clear_tid;
     }
 
     if (lwp->debug)
@@ -3458,6 +3467,29 @@ fail:
     return (long)err;
 }
 
+long _sys_clone(void *arg[])
+{
+    /*
+       musl call flags (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND
+       | CLONE_THREAD | CLONE_SYSVSEM | CLONE_SETTLS
+       | CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID | CLONE_DETACHED);
+       */
+
+    /* check args */
+    if (!lwp_user_accessable(arg, sizeof(void *[SYS_CLONE_ARGS_NR])))
+    {
+        return -EFAULT;
+    }
+
+    unsigned long flags = (unsigned long)(size_t)arg[0];
+    void *user_stack = arg[1];
+    int *new_tid = (int *)arg[2];
+    void *tls = (void *)arg[3];
+    int *clear_tid = (int *)arg[4];
+
+    return _sys_clone_args(flags, user_stack, new_tid, tls, clear_tid);
+}
+
 /**
  * @brief Creates a new process or thread (clone).
  *
@@ -3478,15 +3510,16 @@ fail:
  * @warning Be cautious when using this function as improper management of process/thread
  *          creation can lead to resource exhaustion, deadlocks, or other synchronization issues.
  */
-rt_weak long sys_clone(void *arg[])
+rt_weak long sys_clone(unsigned long flags, void *user_stack, int *new_tid, void *tls, int *clear_tid)
 {
-    return _sys_clone(arg);
+    return _sys_clone_args(flags, user_stack, new_tid, tls, clear_tid);
 }
 
 static void lwp_struct_copy(struct rt_lwp *dst, struct rt_lwp *src)
 {
 #ifdef ARCH_MM_MMU
     dst->end_heap = src->end_heap;
+    dst->brk = src->brk;
 #endif
     dst->lwp_type = src->lwp_type;
     dst->text_entry = src->text_entry;
@@ -3907,6 +3940,7 @@ sysret_t sys_execve(const char *path, char *const argv[], char *const envp[])
         _swap_lwp_data(lwp, new_lwp, struct rt_aspace *, aspace);
 
         _swap_lwp_data(lwp, new_lwp, size_t, end_heap);
+        _swap_lwp_data(lwp, new_lwp, size_t, brk);
 #endif
         _swap_lwp_data(lwp, new_lwp, uint8_t, lwp_type);
         _swap_lwp_data(lwp, new_lwp, void *, text_entry);
@@ -7588,7 +7622,7 @@ sysret_t sys_fchdir(int fd)
  *
  * @see sys_rmdir(), sys_chdir(), sys_mkdirat()
  */
-sysret_t sys_mkdir(const char *path, mode_t mode)
+sysret_t sys_mkdir(int dirfd, const char *path, mode_t mode)
 {
 #ifdef ARCH_MM_MMU
     int err = 0;
@@ -10979,266 +11013,313 @@ sysret_t sys_get_robust_list(int tid, struct robust_list_head **head_ptr, size_t
     return 0;
 }
 
-const static struct rt_syscall_def func_table[] =
-{
-    SYSCALL_SIGN(sys_exit),            /* 01 */
-    SYSCALL_SIGN(sys_read),
-    SYSCALL_SIGN(sys_write),
-    SYSCALL_SIGN(sys_lseek),
-    SYSCALL_SIGN(sys_open),            /* 05 */
-    SYSCALL_SIGN(sys_close),
-    SYSCALL_SIGN(sys_ioctl),
-    SYSCALL_SIGN(sys_fstat),
-    SYSCALL_SIGN(sys_poll),
-    SYSCALL_SIGN(sys_nanosleep),       /* 10 */
-    SYSCALL_SIGN(sys_gettimeofday),
-    SYSCALL_SIGN(sys_settimeofday),
-    SYSCALL_SIGN(sys_exec),
-    SYSCALL_SIGN(sys_kill),
-    SYSCALL_SIGN(sys_getpid),          /* 15 */
-    SYSCALL_SIGN(sys_getpriority),
-    SYSCALL_SIGN(sys_setpriority),
-    SYSCALL_SIGN(sys_sem_create),
-    SYSCALL_SIGN(sys_sem_delete),
-    SYSCALL_SIGN(sys_sem_take),        /* 20 */
-    SYSCALL_SIGN(sys_sem_release),
-    SYSCALL_SIGN(sys_mutex_create),
-    SYSCALL_SIGN(sys_mutex_delete),
-    SYSCALL_SIGN(sys_mutex_take),
-    SYSCALL_SIGN(sys_mutex_release),   /* 25 */
-    SYSCALL_SIGN(sys_event_create),
-    SYSCALL_SIGN(sys_event_delete),
-    SYSCALL_SIGN(sys_event_send),
-    SYSCALL_SIGN(sys_event_recv),
-    SYSCALL_SIGN(sys_mb_create),       /* 30 */
-    SYSCALL_SIGN(sys_mb_delete),
-    SYSCALL_SIGN(sys_mb_send),
-    SYSCALL_SIGN(sys_mb_send_wait),
-    SYSCALL_SIGN(sys_mb_recv),
-    SYSCALL_SIGN(sys_mq_create),       /* 35 */
-    SYSCALL_SIGN(sys_mq_delete),
-    SYSCALL_SIGN(sys_mq_send),
-    SYSCALL_SIGN(sys_mq_urgent),
-    SYSCALL_SIGN(sys_mq_recv),
-    SYSCALL_SIGN(sys_thread_create),   /* 40 */
-    SYSCALL_SIGN(sys_thread_delete),
-    SYSCALL_SIGN(sys_thread_startup),
-    SYSCALL_SIGN(sys_thread_self),
-    SYSCALL_SIGN(sys_channel_open),
-    SYSCALL_SIGN(sys_channel_close),   /* 45 */
-    SYSCALL_SIGN(sys_channel_send),
-    SYSCALL_SIGN(sys_channel_send_recv_timeout),
-    SYSCALL_SIGN(sys_channel_reply),
-    SYSCALL_SIGN(sys_channel_recv_timeout),
-    SYSCALL_SIGN(sys_enter_critical),  /* 50 */
-    SYSCALL_SIGN(sys_exit_critical),
+sysret_t sys_get_uid() {
+    return 0;
+}
 
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_brk)),
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_mmap2)),
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_munmap)),
-#ifdef ARCH_MM_MMU
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_shmget)), /* 55 */
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_shmrm)),
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_shmat)),
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_shmdt)),
-#else
-#ifdef RT_LWP_USING_SHM
-    SYSCALL_SIGN(sys_shm_alloc),      /* 55 */
-    SYSCALL_SIGN(sys_shm_free),
-    SYSCALL_SIGN(sys_shm_retain),
-    SYSCALL_SIGN(sys_notimpl),
-#else
-    SYSCALL_SIGN(sys_notimpl),      /* 55 */
-    SYSCALL_SIGN(sys_notimpl),
-    SYSCALL_SIGN(sys_notimpl),
-    SYSCALL_SIGN(sys_notimpl),
-#endif /* RT_LWP_USING_SHM */
-#endif /* ARCH_MM_MMU */
-    SYSCALL_SIGN(sys_device_init),
-    SYSCALL_SIGN(sys_device_register), /* 60 */
-    SYSCALL_SIGN(sys_device_control),
-    SYSCALL_SIGN(sys_device_find),
-    SYSCALL_SIGN(sys_device_open),
-    SYSCALL_SIGN(sys_device_close),
-    SYSCALL_SIGN(sys_device_read),    /* 65 */
-    SYSCALL_SIGN(sys_device_write),
+sysret_t sys_fcntl(int fd, int cmd, int arg) {
+    return fcntl(fd, cmd, arg);
+}
 
-    SYSCALL_SIGN(sys_stat),
-    SYSCALL_SIGN(sys_thread_find),
+// const static struct rt_syscall_def func_table[] =
+// {
+//     SYSCALL_SIGN(sys_exit),            /* 01 */
+//     SYSCALL_SIGN(sys_read),
+//     SYSCALL_SIGN(sys_write),
+//     SYSCALL_SIGN(sys_lseek),
+//     SYSCALL_SIGN(sys_open),            /* 05 */
+//     SYSCALL_SIGN(sys_close),
+//     SYSCALL_SIGN(sys_ioctl),
+//     SYSCALL_SIGN(sys_fstat),
+//     SYSCALL_SIGN(sys_poll),
+//     SYSCALL_SIGN(sys_nanosleep),       /* 10 */
+//     SYSCALL_SIGN(sys_gettimeofday),
+//     SYSCALL_SIGN(sys_settimeofday),
+//     SYSCALL_SIGN(sys_exec),
+//     SYSCALL_SIGN(sys_kill),
+//     SYSCALL_SIGN(sys_getpid),          /* 15 */
+//     SYSCALL_SIGN(sys_getpriority),
+//     SYSCALL_SIGN(sys_setpriority),
+//     SYSCALL_SIGN(sys_sem_create),
+//     SYSCALL_SIGN(sys_sem_delete),
+//     SYSCALL_SIGN(sys_sem_take),        /* 20 */
+//     SYSCALL_SIGN(sys_sem_release),
+//     SYSCALL_SIGN(sys_mutex_create),
+//     SYSCALL_SIGN(sys_mutex_delete),
+//     SYSCALL_SIGN(sys_mutex_take),
+//     SYSCALL_SIGN(sys_mutex_release),   /* 25 */
+//     SYSCALL_SIGN(sys_event_create),
+//     SYSCALL_SIGN(sys_event_delete),
+//     SYSCALL_SIGN(sys_event_send),
+//     SYSCALL_SIGN(sys_event_recv),
+//     SYSCALL_SIGN(sys_mb_create),       /* 30 */
+//     SYSCALL_SIGN(sys_mb_delete),
+//     SYSCALL_SIGN(sys_mb_send),
+//     SYSCALL_SIGN(sys_mb_send_wait),
+//     SYSCALL_SIGN(sys_mb_recv),
+//     SYSCALL_SIGN(sys_mq_create),       /* 35 */
+//     SYSCALL_SIGN(sys_mq_delete),
+//     SYSCALL_SIGN(sys_mq_send),
+//     SYSCALL_SIGN(sys_mq_urgent),
+//     SYSCALL_SIGN(sys_mq_recv),
+//     SYSCALL_SIGN(sys_thread_create),   /* 40 */
+//     SYSCALL_SIGN(sys_thread_delete),
+//     SYSCALL_SIGN(sys_thread_startup),
+//     SYSCALL_SIGN(sys_thread_self),
+//     SYSCALL_SIGN(sys_channel_open),
+//     SYSCALL_SIGN(sys_channel_close),   /* 45 */
+//     SYSCALL_SIGN(sys_channel_send),
+//     SYSCALL_SIGN(sys_channel_send_recv_timeout),
+//     SYSCALL_SIGN(sys_channel_reply),
+//     SYSCALL_SIGN(sys_channel_recv_timeout),
+//     SYSCALL_SIGN(sys_enter_critical),  /* 50 */
+//     SYSCALL_SIGN(sys_exit_critical),
 
-    SYSCALL_NET(SYSCALL_SIGN(sys_accept)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_bind)),      /* 70 */
-    SYSCALL_NET(SYSCALL_SIGN(sys_shutdown)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_getpeername)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_getsockname)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_getsockopt)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_setsockopt)), /* 75 */
-    SYSCALL_NET(SYSCALL_SIGN(sys_connect)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_listen)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_recv)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_recvfrom)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_send)),      /* 80 */
-    SYSCALL_NET(SYSCALL_SIGN(sys_sendto)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_socket)),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_brk)),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_mmap2)),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_munmap)),
+// #ifdef ARCH_MM_MMU
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_shmget)), /* 55 */
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_shmrm)),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_shmat)),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_shmdt)),
+// #else
+// #ifdef RT_LWP_USING_SHM
+//     SYSCALL_SIGN(sys_shm_alloc),      /* 55 */
+//     SYSCALL_SIGN(sys_shm_free),
+//     SYSCALL_SIGN(sys_shm_retain),
+//     SYSCALL_SIGN(sys_notimpl),
+// #else
+//     SYSCALL_SIGN(sys_notimpl),      /* 55 */
+//     SYSCALL_SIGN(sys_notimpl),
+//     SYSCALL_SIGN(sys_notimpl),
+//     SYSCALL_SIGN(sys_notimpl),
+// #endif /* RT_LWP_USING_SHM */
+// #endif /* ARCH_MM_MMU */
+//     SYSCALL_SIGN(sys_device_init),
+//     SYSCALL_SIGN(sys_device_register), /* 60 */
+//     SYSCALL_SIGN(sys_device_control),
+//     SYSCALL_SIGN(sys_device_find),
+//     SYSCALL_SIGN(sys_device_open),
+//     SYSCALL_SIGN(sys_device_close),
+//     SYSCALL_SIGN(sys_device_read),    /* 65 */
+//     SYSCALL_SIGN(sys_device_write),
 
-    SYSCALL_NET(SYSCALL_SIGN(sys_closesocket)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_getaddrinfo)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_gethostbyname2_r)), /* 85 */
+//     SYSCALL_SIGN(sys_stat),
+//     SYSCALL_SIGN(sys_thread_find),
 
-    SYSCALL_NET(SYSCALL_SIGN(sys_sendmsg)),
-    SYSCALL_NET(SYSCALL_SIGN(sys_recvmsg)),
-    SYSCALL_SIGN(sys_notimpl),    /* network */
-    SYSCALL_SIGN(sys_notimpl),    /* network */
-    SYSCALL_SIGN(sys_notimpl),    /* network, 90 */
-    SYSCALL_SIGN(sys_notimpl),    /* network */
-    SYSCALL_SIGN(sys_notimpl),    /* network */
-    SYSCALL_SIGN(sys_notimpl),    /* network */
+//     SYSCALL_NET(SYSCALL_SIGN(sys_accept)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_bind)),      /* 70 */
+//     SYSCALL_NET(SYSCALL_SIGN(sys_shutdown)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_getpeername)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_getsockname)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_getsockopt)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_setsockopt)), /* 75 */
+//     SYSCALL_NET(SYSCALL_SIGN(sys_connect)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_listen)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_recv)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_recvfrom)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_send)),      /* 80 */
+//     SYSCALL_NET(SYSCALL_SIGN(sys_sendto)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_socket)),
 
-#ifdef RT_USING_DFS
-    SYSCALL_SIGN(sys_select),
-#else
-    SYSCALL_SIGN(sys_notimpl),
-#endif
+//     SYSCALL_NET(SYSCALL_SIGN(sys_closesocket)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_getaddrinfo)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_gethostbyname2_r)), /* 85 */
 
-    SYSCALL_SIGN(sys_notimpl),    /* SYSCALL_SIGN(sys_hw_interrupt_disable), 95 */
-    SYSCALL_SIGN(sys_notimpl),    /* SYSCALL_SIGN(sys_hw_interrupt_enable) */
+//     SYSCALL_NET(SYSCALL_SIGN(sys_sendmsg)),
+//     SYSCALL_NET(SYSCALL_SIGN(sys_recvmsg)),
+//     SYSCALL_SIGN(sys_notimpl),    /* network */
+//     SYSCALL_SIGN(sys_notimpl),    /* network */
+//     SYSCALL_SIGN(sys_notimpl),    /* network, 90 */
+//     SYSCALL_SIGN(sys_notimpl),    /* network */
+//     SYSCALL_SIGN(sys_notimpl),    /* network */
+//     SYSCALL_SIGN(sys_notimpl),    /* network */
 
-    SYSCALL_SIGN(sys_tick_get),
-    SYSCALL_SIGN(sys_exit_group),
+// #ifdef RT_USING_DFS
+//     SYSCALL_SIGN(sys_select),
+// #else
+//     SYSCALL_SIGN(sys_notimpl),
+// #endif
 
-    SYSCALL_SIGN(sys_notimpl),    /* rt_delayed_work_init */
-    SYSCALL_SIGN(sys_notimpl),    /* rt_work_submit, 100 */
-    SYSCALL_SIGN(sys_notimpl),    /* rt_wqueue_wakeup */
-    SYSCALL_SIGN(sys_thread_mdelay),
-    SYSCALL_SIGN(sys_sigaction),
-    SYSCALL_SIGN(sys_sigprocmask),
-    SYSCALL_SIGN(sys_tkill),             /* 105 */
-    SYSCALL_SIGN(sys_thread_sigprocmask),
-#ifdef ARCH_MM_MMU
-    SYSCALL_SIGN(sys_cacheflush),
-    SYSCALL_SIGN(sys_notimpl),
-    SYSCALL_SIGN(sys_notimpl),
-#else
-    SYSCALL_SIGN(sys_notimpl),
-    SYSCALL_SIGN(sys_lwp_sighandler_set),
-    SYSCALL_SIGN(sys_thread_sighandler_set),
-#endif
-    SYSCALL_SIGN(sys_waitpid),          /* 110 */
+//     SYSCALL_SIGN(sys_notimpl),    /* SYSCALL_SIGN(sys_hw_interrupt_disable), 95 */
+//     SYSCALL_SIGN(sys_notimpl),    /* SYSCALL_SIGN(sys_hw_interrupt_enable) */
 
-    SYSCALL_SIGN(sys_rt_timer_create),
-    SYSCALL_SIGN(sys_rt_timer_delete),
-    SYSCALL_SIGN(sys_rt_timer_start),
-    SYSCALL_SIGN(sys_rt_timer_stop),
-    SYSCALL_SIGN(sys_rt_timer_control),  /* 115 */
-    SYSCALL_SIGN(sys_getcwd),
-    SYSCALL_SIGN(sys_chdir),
-    SYSCALL_SIGN(sys_unlink),
-    SYSCALL_SIGN(sys_mkdir),
-    SYSCALL_SIGN(sys_rmdir),          /* 120 */
-    SYSCALL_SIGN(sys_getdents),
-    SYSCALL_SIGN(sys_get_errno),
-#ifdef ARCH_MM_MMU
-    SYSCALL_SIGN(sys_set_thread_area),
-    SYSCALL_SIGN(sys_set_tid_address),
-#else
-    SYSCALL_SIGN(sys_notimpl),
-    SYSCALL_SIGN(sys_notimpl),
-#endif
-    SYSCALL_SIGN(sys_access),         /* 125 */
-    SYSCALL_SIGN(sys_pipe),
-    SYSCALL_SIGN(sys_clock_settime),
-    SYSCALL_SIGN(sys_clock_gettime),
-    SYSCALL_SIGN(sys_clock_getres),
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_clone)),            /* 130 */
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_futex)),
-    SYSCALL_SIGN(sys_notimpl),                          /* discarded: sys_pmutex */
-    SYSCALL_SIGN(sys_dup),
-    SYSCALL_SIGN(sys_dup2),
-    SYSCALL_SIGN(sys_rename),                           /* 135 */
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_fork)),
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_execve)),
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_vfork)),
-    SYSCALL_SIGN(sys_gettid),
-    SYSCALL_SIGN(sys_prlimit64),                        /* 140 */
-    SYSCALL_SIGN(sys_getrlimit),
-    SYSCALL_SIGN(sys_setrlimit),
-    SYSCALL_SIGN(sys_setsid),
-    SYSCALL_SIGN(sys_getrandom),
-    SYSCALL_SIGN(sys_readlink),                         /* 145 */
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_mremap)),
-    SYSCALL_USPACE(SYSCALL_SIGN(sys_madvise)),
-    SYSCALL_SIGN(sys_sched_setparam),
-    SYSCALL_SIGN(sys_sched_getparam),
-    SYSCALL_SIGN(sys_sched_get_priority_max),           /* 150 */
-    SYSCALL_SIGN(sys_sched_get_priority_min),
-    SYSCALL_SIGN(sys_sched_setscheduler),
-    SYSCALL_SIGN(sys_sched_getscheduler),
-    SYSCALL_SIGN(sys_sched_setaffinity),
-    SYSCALL_SIGN(sys_fsync),                            /* 155 */
-    SYSCALL_SIGN(sys_clock_nanosleep),
-    SYSCALL_SIGN(sys_timer_create),
-    SYSCALL_SIGN(sys_timer_delete),
-    SYSCALL_SIGN(sys_timer_settime),
-    SYSCALL_SIGN(sys_timer_gettime),                    /* 160 */
-    SYSCALL_SIGN(sys_timer_getoverrun),
-    SYSCALL_SIGN(sys_mq_open),
-    SYSCALL_SIGN(sys_mq_unlink),
-    SYSCALL_SIGN(sys_mq_timedsend),
-    SYSCALL_SIGN(sys_mq_timedreceive),                  /* 165 */
-    SYSCALL_SIGN(sys_mq_notify),
-    SYSCALL_SIGN(sys_mq_getsetattr),
-    SYSCALL_SIGN(sys_mq_close),
-    SYSCALL_SIGN(sys_lstat),
-    SYSCALL_SIGN(sys_uname),                            /* 170 */
-    SYSCALL_SIGN(sys_statfs),
-    SYSCALL_SIGN(sys_statfs64),
-    SYSCALL_SIGN(sys_fstatfs),
-    SYSCALL_SIGN(sys_fstatfs64),
-    SYSCALL_SIGN(sys_openat),                           /* 175 */
-    SYSCALL_SIGN(sys_mount),
-    SYSCALL_SIGN(sys_umount2),
-    SYSCALL_SIGN(sys_link),
-    SYSCALL_SIGN(sys_symlink),
-    SYSCALL_SIGN(sys_sched_getaffinity),                /* 180 */
-    SYSCALL_SIGN(sys_sysinfo),
-    SYSCALL_SIGN(sys_chmod),
-    SYSCALL_SIGN(sys_reboot),
-    SYSCALL_SIGN(sys_sched_yield),
-    SYSCALL_SIGN(sys_pread64),                          /* 185 */
-    SYSCALL_SIGN(sys_pwrite64),
-    SYSCALL_SIGN(sys_sigpending),
-    SYSCALL_SIGN(sys_sigtimedwait),
-    SYSCALL_SIGN(sys_notimpl),
-    SYSCALL_SIGN(sys_notimpl),                          /* 190 */
-    SYSCALL_SIGN(sys_eventfd2),
-    SYSCALL_SIGN(sys_epoll_create1),
-    SYSCALL_SIGN(sys_epoll_ctl),
-    SYSCALL_SIGN(sys_epoll_pwait),
-    SYSCALL_SIGN(sys_notimpl),                          /* 195 */
-    SYSCALL_SIGN(sys_timerfd_create),
-    SYSCALL_SIGN(sys_timerfd_settime),
-    SYSCALL_SIGN(sys_timerfd_gettime),
-    SYSCALL_SIGN(sys_signalfd),
-    SYSCALL_SIGN(sys_memfd_create),                     /* 200 */
-    SYSCALL_SIGN(sys_ftruncate),
-    SYSCALL_SIGN(sys_setitimer),
-    SYSCALL_SIGN(sys_utimensat),
-#ifdef RT_USING_POSIX_SOCKET
-    SYSCALL_SIGN(sys_syslog),
-    SYSCALL_SIGN(sys_socketpair),                             /* 205 */
-#else
-    SYSCALL_SIGN(sys_notimpl),
-    SYSCALL_SIGN(sys_notimpl),                          /* 205 */
-#endif
-    SYSCALL_SIGN(sys_wait4),
-    SYSCALL_SIGN(sys_set_robust_list),
-    SYSCALL_SIGN(sys_get_robust_list),
-    SYSCALL_SIGN(sys_setpgid),
-    SYSCALL_SIGN(sys_getpgid),                          /* 210 */
-    SYSCALL_SIGN(sys_getsid),
-    SYSCALL_SIGN(sys_getppid),
-    SYSCALL_SIGN(sys_fchdir),
-    SYSCALL_SIGN(sys_chown),
+//     SYSCALL_SIGN(sys_tick_get),
+//     SYSCALL_SIGN(sys_exit_group),
+
+//     SYSCALL_SIGN(sys_notimpl),    /* rt_delayed_work_init */
+//     SYSCALL_SIGN(sys_notimpl),    /* rt_work_submit, 100 */
+//     SYSCALL_SIGN(sys_notimpl),    /* rt_wqueue_wakeup */
+//     SYSCALL_SIGN(sys_thread_mdelay),
+//     SYSCALL_SIGN(sys_sigaction),
+//     SYSCALL_SIGN(sys_sigprocmask),
+//     SYSCALL_SIGN(sys_tkill),             /* 105 */
+//     SYSCALL_SIGN(sys_thread_sigprocmask),
+// #ifdef ARCH_MM_MMU
+//     SYSCALL_SIGN(sys_cacheflush),
+//     SYSCALL_SIGN(sys_notimpl),
+//     SYSCALL_SIGN(sys_notimpl),
+// #else
+//     SYSCALL_SIGN(sys_notimpl),
+//     SYSCALL_SIGN(sys_lwp_sighandler_set),
+//     SYSCALL_SIGN(sys_thread_sighandler_set),
+// #endif
+//     SYSCALL_SIGN(sys_waitpid),          /* 110 */
+
+//     SYSCALL_SIGN(sys_rt_timer_create),
+//     SYSCALL_SIGN(sys_rt_timer_delete),
+//     SYSCALL_SIGN(sys_rt_timer_start),
+//     SYSCALL_SIGN(sys_rt_timer_stop),
+//     SYSCALL_SIGN(sys_rt_timer_control),  /* 115 */
+//     SYSCALL_SIGN(sys_getcwd),
+//     SYSCALL_SIGN(sys_chdir),
+//     SYSCALL_SIGN(sys_unlink),
+//     SYSCALL_SIGN(sys_mkdir),
+//     SYSCALL_SIGN(sys_rmdir),          /* 120 */
+//     SYSCALL_SIGN(sys_getdents),
+//     SYSCALL_SIGN(sys_get_errno),
+// #ifdef ARCH_MM_MMU
+//     SYSCALL_SIGN(sys_set_thread_area),
+//     SYSCALL_SIGN(sys_set_tid_address),
+// #else
+//     SYSCALL_SIGN(sys_notimpl),
+//     SYSCALL_SIGN(sys_notimpl),
+// #endif
+//     SYSCALL_SIGN(sys_access),         /* 125 */
+//     SYSCALL_SIGN(sys_pipe),
+//     SYSCALL_SIGN(sys_clock_settime),
+//     SYSCALL_SIGN(sys_clock_gettime),
+//     SYSCALL_SIGN(sys_clock_getres),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_clone)),            /* 130 */
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_futex)),
+//     SYSCALL_SIGN(sys_notimpl),                          /* discarded: sys_pmutex */
+//     SYSCALL_SIGN(sys_dup),
+//     SYSCALL_SIGN(sys_dup2),
+//     SYSCALL_SIGN(sys_rename),                           /* 135 */
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_fork)),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_execve)),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_vfork)),
+//     SYSCALL_SIGN(sys_gettid),
+//     SYSCALL_SIGN(sys_prlimit64),                        /* 140 */
+//     SYSCALL_SIGN(sys_getrlimit),
+//     SYSCALL_SIGN(sys_setrlimit),
+//     SYSCALL_SIGN(sys_setsid),
+//     SYSCALL_SIGN(sys_getrandom),
+//     SYSCALL_SIGN(sys_readlink),                         /* 145 */
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_mremap)),
+//     SYSCALL_USPACE(SYSCALL_SIGN(sys_madvise)),
+//     SYSCALL_SIGN(sys_sched_setparam),
+//     SYSCALL_SIGN(sys_sched_getparam),
+//     SYSCALL_SIGN(sys_sched_get_priority_max),           /* 150 */
+//     SYSCALL_SIGN(sys_sched_get_priority_min),
+//     SYSCALL_SIGN(sys_sched_setscheduler),
+//     SYSCALL_SIGN(sys_sched_getscheduler),
+//     SYSCALL_SIGN(sys_sched_setaffinity),
+//     SYSCALL_SIGN(sys_fsync),                            /* 155 */
+//     SYSCALL_SIGN(sys_clock_nanosleep),
+//     SYSCALL_SIGN(sys_timer_create),
+//     SYSCALL_SIGN(sys_timer_delete),
+//     SYSCALL_SIGN(sys_timer_settime),
+//     SYSCALL_SIGN(sys_timer_gettime),                    /* 160 */
+//     SYSCALL_SIGN(sys_timer_getoverrun),
+//     SYSCALL_SIGN(sys_mq_open),
+//     SYSCALL_SIGN(sys_mq_unlink),
+//     SYSCALL_SIGN(sys_mq_timedsend),
+//     SYSCALL_SIGN(sys_mq_timedreceive),                  /* 165 */
+//     SYSCALL_SIGN(sys_mq_notify),
+//     SYSCALL_SIGN(sys_mq_getsetattr),
+//     SYSCALL_SIGN(sys_mq_close),
+//     SYSCALL_SIGN(sys_lstat),
+//     SYSCALL_SIGN(sys_uname),                            /* 170 */
+//     SYSCALL_SIGN(sys_statfs),
+//     SYSCALL_SIGN(sys_statfs64),
+//     SYSCALL_SIGN(sys_fstatfs),
+//     SYSCALL_SIGN(sys_fstatfs64),
+//     SYSCALL_SIGN(sys_openat),                           /* 175 */
+//     SYSCALL_SIGN(sys_mount),
+//     SYSCALL_SIGN(sys_umount2),
+//     SYSCALL_SIGN(sys_link),
+//     SYSCALL_SIGN(sys_symlink),
+//     SYSCALL_SIGN(sys_sched_getaffinity),                /* 180 */
+//     SYSCALL_SIGN(sys_sysinfo),
+//     SYSCALL_SIGN(sys_chmod),
+//     SYSCALL_SIGN(sys_reboot),
+//     SYSCALL_SIGN(sys_sched_yield),
+//     SYSCALL_SIGN(sys_pread64),                          /* 185 */
+//     SYSCALL_SIGN(sys_pwrite64),
+//     SYSCALL_SIGN(sys_sigpending),
+//     SYSCALL_SIGN(sys_sigtimedwait),
+//     SYSCALL_SIGN(sys_notimpl),
+//     SYSCALL_SIGN(sys_notimpl),                          /* 190 */
+//     SYSCALL_SIGN(sys_eventfd2),
+//     SYSCALL_SIGN(sys_epoll_create1),
+//     SYSCALL_SIGN(sys_epoll_ctl),
+//     SYSCALL_SIGN(sys_epoll_pwait),
+//     SYSCALL_SIGN(sys_notimpl),                          /* 195 */
+//     SYSCALL_SIGN(sys_timerfd_create),
+//     SYSCALL_SIGN(sys_timerfd_settime),
+//     SYSCALL_SIGN(sys_timerfd_gettime),
+//     SYSCALL_SIGN(sys_signalfd),
+//     SYSCALL_SIGN(sys_memfd_create),                     /* 200 */
+//     SYSCALL_SIGN(sys_ftruncate),
+//     SYSCALL_SIGN(sys_setitimer),
+//     SYSCALL_SIGN(sys_utimensat),
+// #ifdef RT_USING_POSIX_SOCKET
+//     SYSCALL_SIGN(sys_syslog),
+//     SYSCALL_SIGN(sys_socketpair),                             /* 205 */
+// #else
+//     SYSCALL_SIGN(sys_notimpl),
+//     SYSCALL_SIGN(sys_notimpl),                          /* 205 */
+// #endif
+//     SYSCALL_SIGN(sys_wait4),
+//     SYSCALL_SIGN(sys_set_robust_list),
+//     SYSCALL_SIGN(sys_get_robust_list),
+//     SYSCALL_SIGN(sys_setpgid),
+//     SYSCALL_SIGN(sys_getpgid),                          /* 210 */
+//     SYSCALL_SIGN(sys_getsid),
+//     SYSCALL_SIGN(sys_getppid),
+//     SYSCALL_SIGN(sys_fchdir),
+//     SYSCALL_SIGN(sys_chown),
+// };
+
+const static struct rt_syscall_def func_table[] = {
+    [17]=SYSCALL_SIGN(sys_getcwd),
+    [59]=SYSCALL_SIGN(sys_pipe),
+    [23]=SYSCALL_SIGN(sys_dup),
+    [24]=SYSCALL_SIGN(sys_dup2),
+    [49]=SYSCALL_SIGN(sys_chdir),
+    [56]=SYSCALL_SIGN(sys_openat),
+    [57]=SYSCALL_SIGN(sys_close),
+    [61]=SYSCALL_SIGN(sys_getdents),
+    [63]=SYSCALL_SIGN(sys_read),
+    [64]=SYSCALL_SIGN(sys_write),
+    [37]=SYSCALL_SIGN(sys_link),
+    [35]=SYSCALL_SIGN(sys_unlinkat),
+    [34]=SYSCALL_SIGN(sys_mkdir),
+    [39]=SYSCALL_SIGN(sys_umount2),
+    [40]=SYSCALL_SIGN(sys_mount),
+    [80]=SYSCALL_SIGN(sys_fstat),
+    [220]=SYSCALL_SIGN(sys_fork),
+    [221]=SYSCALL_SIGN(sys_execve),
+    [260]=SYSCALL_SIGN(sys_wait4),
+    [93]=SYSCALL_SIGN(sys_exit),
+    [173]=SYSCALL_SIGN(sys_getppid),
+    [172]=SYSCALL_SIGN(sys_getpid),
+    [214]=SYSCALL_SIGN(sys_brk),
+    [215]=SYSCALL_SIGN(sys_munmap),
+    [222]=SYSCALL_SIGN(sys_mmap2),
+    [160]=SYSCALL_SIGN(sys_uname),
+    [124]=SYSCALL_SIGN(sys_sched_yield),
+    [169]=SYSCALL_SIGN(sys_gettimeofday),
+    [101]=SYSCALL_SIGN(sys_nanosleep),
+    [96]=SYSCALL_SIGN(sys_set_tid_address),
+    [174]=SYSCALL_SIGN(sys_get_uid),
+    [29]=SYSCALL_SIGN(sys_ioctl),
+    [94]=SYSCALL_SIGN(sys_exit_group),
+    [113]=SYSCALL_SIGN(sys_clock_gettime),
+    [25]=SYSCALL_SIGN(sys_fcntl),
+    [66]=SYSCALL_SIGN(sys_writev)
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)
@@ -11251,10 +11332,11 @@ const void *lwp_get_sys_api(rt_uint32_t number)
     }
     else
     {
-        number -= 1;
+        // number -= 1;
         if (number < sizeof(func_table) / sizeof(func_table[0]))
         {
             func = func_table[number].func;
+            // rt_kprintf("SYSCALL name=%s\n", func_table[number].name);
         }
         else
         {
@@ -11264,6 +11346,8 @@ const void *lwp_get_sys_api(rt_uint32_t number)
             }
         }
     }
+
+    // rt_kprintf("SYSCALL id=%d\n", number);
 
     return func;
 }

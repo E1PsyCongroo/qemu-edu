@@ -28,6 +28,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include "lwp_ipc.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
