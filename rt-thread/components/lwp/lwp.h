@@ -20,6 +20,7 @@
 #ifndef __LWP_H__
 #define __LWP_H__
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include <rthw.h>
@@ -122,6 +123,7 @@ struct rt_lwp
 {
 #ifdef ARCH_MM_MMU
     size_t end_heap;
+    size_t brk; // end of heap show to user
     rt_aspace_t aspace;
 #else
 #ifdef ARCH_MM_MPU

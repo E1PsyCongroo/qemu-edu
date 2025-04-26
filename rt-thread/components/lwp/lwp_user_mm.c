@@ -17,8 +17,11 @@
  * 2023-09-19     Shell        add lwp_user_memory_remap_to_kernel
  */
 
+#include "lwp_arch.h"
 #include <rtthread.h>
 #include <rthw.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifdef ARCH_MM_MMU
@@ -394,12 +397,22 @@ rt_base_t lwp_brk(void *addr)
 
     if ((size_t)addr == RT_NULL)
     {
-        addr = (char *)lwp->end_heap + 1;
+        // addr = (char *)lwp->end_heap + 1;
+        return lwp->brk;
     }
 
-    if ((size_t)addr <= lwp->end_heap && (size_t)addr > USER_HEAP_VADDR)
+    // LOG_I("brk(%lu)\n", addr);
+    // LOG_I("before brk: brk=%lu", lwp->brk);
+
+    ret = (size_t) addr;
+    // if ((size_t)addr <= lwp->end_heap && (size_t)addr > USER_HEAP_VADDR)
+    
+    if ((size_t)addr <= lwp->brk && (size_t)addr > USER_HEAP_VADDR)
     {
-        ret = (size_t)addr;
+        // ret = (size_t)addr;
+    }
+    else if ((size_t)addr >= lwp->brk && (size_t)addr <= lwp->end_heap) {
+        lwp->brk = (size_t)addr;
     }
     else if ((size_t)addr <= USER_HEAP_VEND)
     {
@@ -408,9 +421,11 @@ rt_base_t lwp_brk(void *addr)
         if (varea)
         {
             lwp->end_heap = (long)(varea->start + varea->size);
-            ret = lwp->end_heap;
+            lwp->brk = (size_t) addr;
         }
     }
+
+    // LOG_I("after brk: brk=%lu, ret=%lu", lwp->brk, ret);
 
     return ret;
 }

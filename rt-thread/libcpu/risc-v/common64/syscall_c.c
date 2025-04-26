@@ -44,7 +44,7 @@ void syscall_handler(struct rt_hw_stack_frame *regs)
 
     if (syscallfunc == RT_NULL)
     {
-        LOG_E("unsupported syscall!\n");
+        LOG_E("unsupported syscall! id= %u\n", syscallid);
         sys_exit_group(-1);
     }
 

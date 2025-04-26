@@ -101,6 +101,7 @@ int arch_user_space_init(struct rt_lwp *lwp)
     }
 
     lwp->end_heap = USER_HEAP_VADDR;
+    lwp->brk = USER_HEAP_VADDR;
     lwp->aspace = rt_aspace_create(
         (void *)USER_VADDR_START, USER_VADDR_TOP - USER_VADDR_START, mmu_table);
     if (!lwp->aspace)

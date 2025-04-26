@@ -11,11 +11,15 @@
  */
 
 #include <dfs.h>
+#include <stddef.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <dfs_dentry.h>
 #include <dfs_mnt.h>
 #include "dfs_private.h"
+#include "klibc/kstring.h"
+#include "rtthread.h"
 
 #ifdef RT_USING_SMART
 #include <lwp.h>
@@ -131,8 +135,18 @@ int openat(int dirfd, const char *path, int flag, ...)
                 rt_set_errno(-EBADF);
                 return -1;
             }
-
-            fullpath = dfs_dentry_full_path(d->dentry);
+            
+            char *dirpath = dfs_dentry_full_path(d->dentry);
+            size_t dirpath_len = strlen(dirpath);
+            size_t path_len = strlen(path);
+            fullpath = (char *)rt_malloc(dirpath_len + 1 + path_len + 1);
+            rt_strcpy(fullpath, dirpath);
+            fullpath[dirpath_len] = '/';
+            rt_strcpy(fullpath + dirpath_len + 1, path);
+            fullpath[dirpath_len + 1 + path_len] = '\0';
+            rt_free(dirpath);
+            
+            // fullpath = dfs_dentry_full_path(d->dentry);
             if (!fullpath)
             {
                 rt_set_errno(-ENOMEM);
