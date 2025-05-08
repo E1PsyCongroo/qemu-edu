@@ -1238,7 +1238,8 @@ int dfs_file_fcntl(int fd, int cmd, unsigned long arg)
             break;
 #ifdef RT_USING_MUSLLIBC
         case F_DUPFD_CLOEXEC:
-            ret = -EINVAL;
+            // ret = -EINVAL;
+            ret = dfs_dup(fd, arg);
             break;
 #endif
         default:

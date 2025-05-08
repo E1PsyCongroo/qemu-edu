@@ -407,7 +407,7 @@ rt_base_t lwp_brk(void *addr)
     ret = (size_t) addr;
     // if ((size_t)addr <= lwp->end_heap && (size_t)addr > USER_HEAP_VADDR)
     
-    if ((size_t)addr <= lwp->brk && (size_t)addr > USER_HEAP_VADDR)
+    if ((size_t)addr <= lwp->brk || (size_t)addr > USER_HEAP_VADDR)
     {
         // ret = (size_t)addr;
     }

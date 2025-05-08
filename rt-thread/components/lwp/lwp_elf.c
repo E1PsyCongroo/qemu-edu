@@ -508,7 +508,6 @@ static int elf_file_mmap(elf_load_info_t *load_info, elf_info_t *elf_info, rt_ub
         }
 
         load_addr = tmp_phdr->p_vaddr + *load_base;
-        LOG_D("%s : p_vaddr : 0x%x, load_addr : 0x%x", __func__, tmp_phdr->p_vaddr, load_addr);
         if ((tmp_phdr->p_vaddr == 0) && (*load_base == 0))
         {
             flags &= ~MAP_FIXED;

@@ -39,6 +39,10 @@ if platform in platform_file.keys(): # support platforms
         CPPPATH = [cwd]
         CPPPATH += [cwd + '/arch/' + arch + '/' + cpu]
 
+# syscall files
+syscall_files = Glob('./syscall/*.c')
+src += syscall_files
+
 # Terminal I/O Subsystem
 termios_path = ['./terminal/', './terminal/freebsd/']
 for item in termios_path:
