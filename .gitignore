@@ -69,3 +69,4 @@ toolchains/qemu-longarch/loongarch64-musl-gcc-nightly-2025-3-27.tar.gz
 toolchains/qemu-virt-riscv64/riscv64gc-linux-musleabi_for_x86_64-pc-linux-gnu_latest.tar.bz2
 
 compile_commands.json
+.gdb_history
