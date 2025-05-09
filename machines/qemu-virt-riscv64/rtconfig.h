@@ -162,7 +162,7 @@
 #define RT_USING_DFS
 #define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
-#define DFS_FD_MAX 32
+#define DFS_FD_MAX 128
 #define RT_USING_DFS_V2
 #define RT_USING_DFS_ELMFAT
 
