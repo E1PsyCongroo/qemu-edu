@@ -401,21 +401,25 @@ rt_base_t lwp_brk(void *addr)
         return lwp->brk;
     }
 
-    // LOG_I("brk(%lu)\n", addr);
-    // LOG_I("before brk: brk=%lu", lwp->brk);
+    // LOG_I("brk(0x%lx)\n", addr);
+    // LOG_I("before brk: brk=%lx", lwp->brk);
+    // LOG_I("lwp->end_heap=%lx", lwp->end_heap);
 
     ret = (size_t) addr;
     // if ((size_t)addr <= lwp->end_heap && (size_t)addr > USER_HEAP_VADDR)
     
-    if ((size_t)addr <= lwp->brk || (size_t)addr > USER_HEAP_VADDR)
+    if ((size_t)addr <= lwp->brk || (size_t)addr < USER_HEAP_VADDR)
     {
+        // LOG_I("type1");
         // ret = (size_t)addr;
     }
     else if ((size_t)addr >= lwp->brk && (size_t)addr <= lwp->end_heap) {
+        // LOG_I("type2");
         lwp->brk = (size_t)addr;
     }
     else if ((size_t)addr <= USER_HEAP_VEND)
     {
+        // LOG_I("type3");
         size = RT_ALIGN((size_t)addr - lwp->end_heap, ARCH_PAGE_SIZE);
         varea = lwp_map_user_varea_ext(lwp, (void *)lwp->end_heap, size, LWP_MAP_FLAG_PREFETCH);
         if (varea)
@@ -429,7 +433,7 @@ rt_base_t lwp_brk(void *addr)
         }
     }
 
-    LOG_I("after brk: addr=%p brk=%p, ret=%p", addr, lwp->brk, ret);
+    // LOG_I("after brk: brk=%lu, ret=%lu", lwp->brk, ret);
 
     return ret;
 }
