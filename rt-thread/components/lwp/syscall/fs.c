@@ -229,7 +229,6 @@ size_t sys_lseek(int fd, size_t offset, int whence)
   */
 sysret_t sys_open(const char *name, int flag, ...)
 {
-#ifdef ARCH_MM_MMU
     int       ret   = -1;
     rt_size_t len   = 0;
     char     *kname = RT_NULL;
@@ -275,26 +274,6 @@ sysret_t sys_open(const char *name, int flag, ...)
     kmem_put(kname);
 
     return ret;
-#else
-    int    ret;
-    mode_t mode = 0;
-
-    if (!lwp_user_accessable((void *)name, 1))
-    {
-        return -EFAULT;
-    }
-
-    if ((flag & O_CREAT) || (flag & O_TMPFILE) == O_TMPFILE)
-    {
-        va_list ap;
-        va_start(ap, flag);
-        mode = va_arg(ap, mode_t);
-        va_end(ap);
-    }
-
-    ret = open(name, flag, mode);
-    return (ret < 0 ? GET_ERRNO() : ret);
-#endif
 }
 
 /**
