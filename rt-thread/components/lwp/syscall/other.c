@@ -3,6 +3,7 @@
 
 #include "lwp_user_mm.h"
 #include "sys/utsname.h"
+#include "sys/times.h"
 
 /**
  * @brief Retrieves the current time and timezone information.
@@ -35,7 +36,6 @@
  */
 sysret_t sys_gettimeofday(struct timeval *tp, struct timezone *tzp)
 {
-#ifdef ARCH_MM_MMU
     struct timeval t_k;
 
     if (tp)
@@ -50,17 +50,6 @@ sysret_t sys_gettimeofday(struct timeval *tp, struct timezone *tzp)
 
         lwp_put_to_user(tp, (void *)&t_k, sizeof t_k);
     }
-#else
-    if (tp)
-    {
-        if (!lwp_user_accessable((void *)tp, sizeof *tp))
-        {
-            return -EFAULT;
-        }
-        tp->tv_sec  = rt_tick_get() / RT_TICK_PER_SECOND;
-        tp->tv_usec = (rt_tick_get() % RT_TICK_PER_SECOND) * (1000000 / RT_TICK_PER_SECOND);
-    }
-#endif
 
     return 0;
 }
@@ -701,5 +690,21 @@ sysret_t sys_get_errno(void)
 
 sysret_t sys_memfd_create()
 {
+    return 0;
+}
+
+sysret_t sys_times(void *tms)
+{
+    struct tms k_tms;
+
+    if (!lwp_user_accessable((void *)tms, sizeof(struct tms)))
+    {
+        return -EFAULT;
+    }
+
+    times(&k_tms);
+
+    lwp_put_to_user(tms, &k_tms, sizeof(struct tms));
+
     return 0;
 }
