@@ -422,10 +422,14 @@ rt_base_t lwp_brk(void *addr)
         {
             lwp->end_heap = (long)(varea->start + varea->size);
             lwp->brk = (size_t) addr;
+            rt_kprintf("endheap=%p\n", lwp->end_heap);
+        } else {
+            LOG_E("lwp brk failed");
+            ret = -1;
         }
     }
 
-    // LOG_I("after brk: brk=%lu, ret=%lu", lwp->brk, ret);
+    LOG_I("after brk: addr=%p brk=%p, ret=%p", addr, lwp->brk, ret);
 
     return ret;
 }
