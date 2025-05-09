@@ -397,13 +397,8 @@ rt_base_t lwp_brk(void *addr)
 
     if ((size_t)addr == RT_NULL)
     {
-        // addr = (char *)lwp->end_heap + 1;
         return lwp->brk;
     }
-
-    // LOG_I("brk(0x%lx)\n", addr);
-    // LOG_I("before brk: brk=%lx", lwp->brk);
-    // LOG_I("lwp->end_heap=%lx", lwp->end_heap);
 
     ret = (size_t) addr;
     // if ((size_t)addr <= lwp->end_heap && (size_t)addr > USER_HEAP_VADDR)
@@ -414,19 +409,16 @@ rt_base_t lwp_brk(void *addr)
         // ret = (size_t)addr;
     }
     else if ((size_t)addr >= lwp->brk && (size_t)addr <= lwp->end_heap) {
-        // LOG_I("type2");
         lwp->brk = (size_t)addr;
     }
     else if ((size_t)addr <= USER_HEAP_VEND)
     {
-        // LOG_I("type3");
         size = RT_ALIGN((size_t)addr - lwp->end_heap, ARCH_PAGE_SIZE);
         varea = lwp_map_user_varea_ext(lwp, (void *)lwp->end_heap, size, LWP_MAP_FLAG_PREFETCH);
         if (varea)
         {
             lwp->end_heap = (long)(varea->start + varea->size);
             lwp->brk = (size_t) addr;
-            rt_kprintf("endheap=%p\n", lwp->end_heap);
         } else {
             LOG_E("lwp brk failed");
             ret = -1;
