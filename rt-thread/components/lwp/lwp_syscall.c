@@ -159,6 +159,7 @@ const static struct rt_syscall_def func_table[] = {
     [175]=SYSCALL_SIGN(sys_get_euid),
     [73]=SYSCALL_SIGN(sys_poll),
     [178]=SYSCALL_SIGN(sys_gettid),
+    [153]=SYSCALL_SIGN(sys_times)
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)
@@ -181,6 +182,11 @@ const void *lwp_get_sys_api(rt_uint32_t number)
         {
             LOG_I("Unimplement syscall %d", number);
         }
+    }
+
+    if (func == RT_NULL) {
+        func = (void *)sys_notimpl;
+        LOG_I("SYSCALL id=%d not implement", number);
     }
 
     // rt_kprintf("SYSCALL id=%d\n", number);

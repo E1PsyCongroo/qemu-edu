@@ -105,6 +105,7 @@ sysret_t sys_get_euid();
 sysret_t sys_uname(struct utsname *uts);
 sysret_t sys_pipe(int fd[2]);
 sysret_t sys_set_tid_address(int *tidptr);
+sysret_t sys_times(void *tms);
 
 /* snyc */
 rt_sem_t   sys_sem_create(const char *name, rt_uint32_t value, rt_uint8_t flag);
