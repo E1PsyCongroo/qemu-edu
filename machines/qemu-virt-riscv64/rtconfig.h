@@ -260,7 +260,7 @@
 /* Interprocess Communication (IPC) */
 
 #define RT_USING_POSIX_PIPE
-#define RT_USING_POSIX_PIPE_SIZE 512
+#define RT_USING_POSIX_PIPE_SIZE 1024
 
 /* Socket is in the 'Network' category */
 

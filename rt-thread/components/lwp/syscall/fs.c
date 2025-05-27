@@ -2417,12 +2417,16 @@ sysret_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count) {
     }
 
     void *buffer = rt_malloc(count);
-
-    if (offset != RT_NULL) {
-        
+    if (buffer == RT_NULL) {
+        return -ENOMEM;
     }
 
-    size_t c = read(in_fd, buffer, count);
+    ssize_t c = read(in_fd, buffer, count);
+    if (c < 0) {
+        rt_free(buffer);
+        return c;
+    }
+    
     c = write(out_fd, buffer, c);
 
     if (offset != RT_NULL) {
@@ -2430,6 +2434,8 @@ sysret_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count) {
         readoffset = lseek(in_fd, 0, SEEK_CUR);
         lwp_put_to_user(offset, &readoffset, sizeof(off_t));
     }
+
+    rt_free(buffer);
 
     return c;
 }

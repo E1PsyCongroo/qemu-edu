@@ -664,7 +664,6 @@ long _sys_clone_args(unsigned long flags, void *user_stack, int *new_tid, void *
                                 user_stack, &thread->sp);
 
         rt_thread_startup(thread);
-        rt_kprintf("new thread pid: %d\n", lwp_to_pid(lwp));
         return lwp_to_pid(lwp);
     }
 

@@ -176,6 +176,7 @@ const void *lwp_get_sys_api(rt_uint32_t number)
         if (number < sizeof(func_table) / sizeof(func_table[0]))
         {
             func = func_table[number].func;
+            LOG_I("SYSCALL [%d]%s", number, func_table[number].name);
             // rt_kprintf("SYSCALL name=%s\n", func_table[number].name);
         }
         else
@@ -188,8 +189,6 @@ const void *lwp_get_sys_api(rt_uint32_t number)
         func = (void *)sys_notimpl;
         LOG_I("SYSCALL id=%d not implement", number);
     }
-
-    // rt_kprintf("SYSCALL id=%d\n", number);
 
     return func;
 }
