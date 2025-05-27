@@ -2439,3 +2439,72 @@ sysret_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count) {
 
     return c;
 }
+
+sysret_t sys_fstatat(int dirfd, const char *pathname, struct stat *buf, int flags)
+{
+    int         ret       = -1;
+    rt_size_t   len       = 0;
+    char       *kpathname = RT_NULL;
+    struct stat statbuff  = {0};
+    int         fd        = -1;
+
+    // 检查用户空间的buf指针是否可访问
+    if (!lwp_user_accessable((void *)buf, sizeof(struct stat)))
+    {
+        return -EFAULT;
+    }
+
+    // 获取pathname的长度并检查有效性
+    len = lwp_user_strlen(pathname);
+    if (len <= 0)
+    {
+        return -EFAULT;
+    }
+
+    // 分配内核内存并拷贝pathname
+    kpathname = (char *)kmem_get(len + 1);
+    if (!kpathname)
+    {
+        return -ENOMEM;
+    }
+
+    // 从用户空间拷贝pathname到内核空间
+    if (lwp_get_from_user(kpathname, (void *)pathname, len + 1) != (len + 1))
+    {
+        kmem_put(kpathname);
+        return -EINVAL;
+    }
+
+    // 临时打开文件以获取其状态
+    int open_flags = O_RDONLY;
+    if (flags & AT_SYMLINK_NOFOLLOW)
+    {
+        open_flags |= O_NOFOLLOW;
+    }
+    
+    fd = openat(dirfd, kpathname, open_flags);
+    if (fd < 0)
+    {
+        kmem_put(kpathname);
+        return GET_ERRNO();
+    }
+
+    // 获取文件状态
+    ret = fstat(fd, &statbuff);
+    
+    // 关闭临时打开的文件
+    close(fd);
+    kmem_put(kpathname);
+
+    // 如果成功获取状态，将结果拷贝到用户空间
+    if (ret == 0)
+    {
+        lwp_put_to_user(buf, &statbuff, sizeof statbuff);
+    }
+    else
+    {
+        ret = GET_ERRNO();
+    }
+
+    return ret;
+}

@@ -159,7 +159,8 @@ const static struct rt_syscall_def func_table[] = {
     [175]=SYSCALL_SIGN(sys_get_euid),
     [73]=SYSCALL_SIGN(sys_poll),
     [178]=SYSCALL_SIGN(sys_gettid),
-    [153]=SYSCALL_SIGN(sys_times)
+    [153]=SYSCALL_SIGN(sys_times),
+    [79]=SYSCALL_SIGN(sys_fstatat),
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)
@@ -176,7 +177,7 @@ const void *lwp_get_sys_api(rt_uint32_t number)
         if (number < sizeof(func_table) / sizeof(func_table[0]))
         {
             func = func_table[number].func;
-            LOG_I("SYSCALL [%d]%s", number, func_table[number].name);
+            // LOG_I("SYSCALL [%d]%s", number, func_table[number].name);
             // rt_kprintf("SYSCALL name=%s\n", func_table[number].name);
         }
         else

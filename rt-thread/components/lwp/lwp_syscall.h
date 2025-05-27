@@ -91,6 +91,7 @@ sysret_t sys_fchdir(int fd);
 sysret_t sys_mkdir(int dirfd, const char *path, mode_t mode);
 sysret_t sys_getdents(int fd, struct libc_dirent *dirp, size_t nbytes);
 sysret_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
+sysret_t sys_fstatat(int dirfd, const char *pathname, struct stat *buf, int flags);
 
 /* mm */
 rt_base_t sys_brk(void *addr);
