@@ -69,6 +69,7 @@ sysret_t sys_gettid(void);
 
 /* filesystem */
 ssize_t  sys_read(int fd, void *buf, size_t nbyte);
+ssize_t sys_readv(int fd, void *user_iovec, int iovcnt);
 ssize_t  sys_write(int fd, const void *buf, size_t nbyte);
 ssize_t  sys_writev(int fd, void *user_iovec, int iovcnt);
 size_t   sys_lseek(int fd, size_t offset, int whence);

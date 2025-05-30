@@ -26,6 +26,7 @@ int main(void)
 
     mkdir("/bin", 0777);
     dfs_file_symlink("/musl/busybox", "/bin/busybox");
+    dfs_file_symlink("/musl/busybox", "/bin/sh");
 
     return 0;
 }

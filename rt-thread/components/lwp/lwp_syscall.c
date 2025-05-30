@@ -161,6 +161,7 @@ const static struct rt_syscall_def func_table[] = {
     [178]=SYSCALL_SIGN(sys_gettid),
     [153]=SYSCALL_SIGN(sys_times),
     [79]=SYSCALL_SIGN(sys_fstatat),
+    [65]=SYSCALL_SIGN(sys_readv),
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)

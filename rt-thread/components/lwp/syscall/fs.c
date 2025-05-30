@@ -77,6 +77,82 @@ ssize_t sys_read(int fd, void *buf, size_t nbyte)
     return ret;
 }
 
+ssize_t sys_readv(int fd, void *user_iovec, int iovcnt)
+{
+    struct iovec *iovec = kmem_get(sizeof(struct iovec) * iovcnt);
+    if (!iovec)
+    {
+        return -ENOMEM;
+    }
+    
+    // 从用户空间复制 iovec 数组到内核空间
+    if (lwp_get_from_user(iovec, user_iovec, sizeof(struct iovec) * iovcnt) != sizeof(struct iovec) * iovcnt)
+    {
+        kmem_put(iovec);
+        return -EFAULT;
+    }
+    
+    ssize_t total_bytes = 0;
+    
+    // 对每个缓冲区进行处理
+    for (int i = 0; i < iovcnt; i++)
+    {
+        void *buffer;
+        
+        // 检查用户空间的缓冲区是否可访问
+        if (!lwp_user_accessable(iovec[i].iov_base, iovec[i].iov_len))
+        {
+            kmem_put(iovec);
+            return -EFAULT;
+        }
+        
+        // 分配内核缓冲区
+        buffer = kmem_get(iovec[i].iov_len);
+        if (!buffer)
+        {
+            kmem_put(iovec);
+            return -ENOMEM;
+        }
+        
+        // 读取数据到内核缓冲区
+        ssize_t bytes = read(fd, buffer, iovec[i].iov_len);
+        if (bytes < 0)
+        {
+            kmem_put(buffer);
+            kmem_put(iovec);
+            return GET_ERRNO();
+        }
+        
+        // 如果没有读到任何数据，可能到达了文件末尾
+        if (bytes == 0)
+        {
+            kmem_put(buffer);
+            break; // 结束读取循环
+        }
+        
+        // 将读取的数据复制到用户空间
+        if (bytes != lwp_put_to_user(iovec[i].iov_base, buffer, bytes))
+        {
+            kmem_put(buffer);
+            kmem_put(iovec);
+            return -EFAULT;
+        }
+        
+        // 释放内核缓冲区并累计读取的总字节数
+        kmem_put(buffer);
+        total_bytes += bytes;
+        
+        // 如果实际读取的字节数小于请求的字节数，可能表示到达了文件末尾
+        if (bytes < (ssize_t)iovec[i].iov_len)
+        {
+            break;
+        }
+    }
+    
+    kmem_put(iovec);
+    return total_bytes;
+}
+
 /**
   * @brief Writes data from a buffer to a file descriptor.
   *
