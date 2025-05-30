@@ -1290,24 +1290,6 @@ int access(const char *path, int amode)
         return 0;
     }
 
-    if ((amode & R_OK) && !(st.st_mode & S_IRUSR))
-    {
-        rt_set_errno(-EACCES);
-        return -1;
-    }
-
-    if ((amode & W_OK) && !(st.st_mode & S_IWUSR))
-    {
-        rt_set_errno(-EACCES);
-        return -1;
-    }
-
-    if ((amode & X_OK) && !(st.st_mode & S_IXUSR))
-    {
-        rt_set_errno(-EACCES);
-        return -1;
-    }
-
     return 0;
 }
 
