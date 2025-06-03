@@ -21,7 +21,8 @@ int main(void)
         return -1;
     }
     mkdir("/lib", 0777);
-    dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-linux-riscv64-lp64.so.1");
+    dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-linux-riscv64-lp64d.so.1");
+    // dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-musl-riscv64-sf.so.1");
     dfs_file_symlink("/dev/tty", "/dev/ttyS0");
 
     mkdir("/bin", 0777);
