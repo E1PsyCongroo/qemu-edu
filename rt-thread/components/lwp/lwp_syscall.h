@@ -175,6 +175,7 @@ sysret_t sys_setsid(void);
 sysret_t sys_getsid(pid_t pid);
 sysret_t sys_setpgid(pid_t pid, pid_t pgid);
 sysret_t sys_getpgid(pid_t pid);
+sysret_t sys_setitimer(int which, const struct itimerspec *restrict new, struct itimerspec *restrict old);
 
 #ifdef __cplusplus
 }
