@@ -49,6 +49,14 @@ typedef uint32_t id_t; /* may contain pid, uid or gid */
 #define PRIO_PGRP    1
 #define PRIO_USER    2
 
+typedef unsigned long long rlim_t;
+
+struct rlimit
+{
+    rlim_t rlim_cur;
+    rlim_t rlim_max;
+};
+
 const char *lwp_get_syscall_name(rt_uint32_t number);
 const void *lwp_get_sys_api(rt_uint32_t number);
 
@@ -108,6 +116,8 @@ sysret_t sys_uname(struct utsname *uts);
 sysret_t sys_pipe(int fd[2]);
 sysret_t sys_set_tid_address(int *tidptr);
 sysret_t sys_times(void *tms);
+sysret_t sys_getrlimit(unsigned int resource, unsigned long rlim[2]);
+sysret_t sys_prlimit64(pid_t pid, unsigned int resource, const struct rlimit *new_rlim,struct rlimit *old_rlim);
 
 /* snyc */
 rt_sem_t   sys_sem_create(const char *name, rt_uint32_t value, rt_uint8_t flag);
@@ -176,6 +186,7 @@ sysret_t sys_getsid(pid_t pid);
 sysret_t sys_setpgid(pid_t pid, pid_t pgid);
 sysret_t sys_getpgid(pid_t pid);
 sysret_t sys_setitimer(int which, const struct itimerspec *restrict new, struct itimerspec *restrict old);
+sysret_t sys_sigtimedwait(const sigset_t *sigset, siginfo_t *info, const struct timespec *timeout, size_t sigsize);
 
 #ifdef __cplusplus
 }

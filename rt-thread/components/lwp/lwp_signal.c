@@ -1449,6 +1449,31 @@ rt_err_t lwp_pgrp_signal_kill(rt_processgroup_t pgrp, long signo, long code,
     return rc;
 }
 
+rt_err_t lwp_signal_kill_pgid(pid_t pgid, long signo, long code, lwp_siginfo_ext_t value)
+{
+    rt_err_t ret;
+    rt_processgroup_t pgrp;
+
+    // 查找并增加引用计数
+    pgrp = lwp_pgrp_find_and_inc_ref(pgid);
+    if (!pgrp)
+        return -ESRCH;  // 找不到对应的进程组
+
+    // 加锁进程组
+    PGRP_LOCK(pgrp);
+    
+    // 向进程组发送信号
+    ret = lwp_pgrp_signal_kill(pgrp, signo, code, value);
+    
+    // 解锁进程组
+    PGRP_UNLOCK(pgrp);
+    
+    // 减少引用计数
+    lwp_pgrp_dec_ref(pgrp);
+    
+    return ret;
+}
+
 struct kill_all_param
 {
     long signo;

@@ -219,6 +219,8 @@ rt_inline int lwp_sigismember(lwp_sigset_t *set, int _sig)
     }
 }
 
+rt_err_t lwp_signal_kill_pgid(pid_t pgid, long signo, long code, lwp_siginfo_ext_t value);
+
 struct itimerspec;
 
 rt_bool_t lwp_sigisign(struct rt_lwp *lwp, int _sig);

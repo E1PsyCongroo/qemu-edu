@@ -4,6 +4,7 @@
 #include "lwp_user_mm.h"
 #include "sys/utsname.h"
 #include "sys/times.h"
+#include "rtdbg.h"
 
 /**
  * @brief Retrieves the current time and timezone information.
@@ -575,14 +576,6 @@ sysret_t sys_pipe(int fd[2])
     return (ret < 0 ? GET_ERRNO() : ret);
 }
 
-typedef unsigned long long rlim_t;
-
-struct rlimit
-{
-    rlim_t rlim_cur;
-    rlim_t rlim_max;
-};
-
 #define RLIMIT_CPU     0
 #define RLIMIT_FSIZE   1
 #define RLIMIT_DATA    2
@@ -599,7 +592,51 @@ sysret_t sys_prlimit64(pid_t                pid,
                        const struct rlimit *new_rlim,
                        struct rlimit       *old_rlim)
 {
-    return -ENOSYS;
+    struct rlimit krlim = {0};
+    int ret = 0;
+
+    if (pid != 0 && pid != lwp_getpid())
+        return -EINVAL;
+
+    if (old_rlim)
+    {
+        if (!lwp_user_accessable((void *)old_rlim, sizeof(struct rlimit)))
+            return -EFAULT;
+        printf("sys_prlimit64: resource = %d, old_rlim = %p", resource, old_rlim);
+        switch (resource)
+        {
+            case RLIMIT_STACK: {
+                rt_thread_t thread = rt_thread_self();
+                if (thread) {
+                    krlim.rlim_cur = thread->stack_size;
+                    krlim.rlim_max = thread->stack_size * 2;
+                } else {
+                    krlim.rlim_cur = 8 * 1024 * 1024;
+                    krlim.rlim_max = 16 * 1024 * 1024;
+                }
+                break;
+            }
+
+            case RLIMIT_NOFILE: {
+                struct dfs_fdtable *fdt = dfs_fdtable_get();
+                dfs_file_lock();
+                krlim.rlim_cur = fdt->maxfd;
+                dfs_file_unlock();
+                krlim.rlim_max = DFS_FD_MAX;
+                break;
+            }
+            
+            default:
+                return -EINVAL;
+        }
+
+        lwp_put_to_user((void *)old_rlim, &krlim, sizeof(struct rlimit));
+    }
+
+    if (new_rlim)
+        return -ENOSYS;
+
+    return ret;
 }
 
 /**
@@ -626,6 +663,7 @@ sysret_t sys_prlimit64(pid_t                pid,
  */
 sysret_t sys_getrlimit(unsigned int resource, unsigned long rlim[2])
 {
+    LOG_I("sys_getrlimit: resource = %d, rlim = %p", resource, rlim);
     int           ret      = -1;
     unsigned long krlim[2] = {0, 0};
 
