@@ -200,6 +200,11 @@ sysret_t sys_socket(int domain, int type, int protocol);
 sysret_t sys_bind(int socket, const struct musl_sockaddr *name, socklen_t namelen);
 sysret_t sys_setsockopt(int socket, int level, int optname, const void *optval, socklen_t optlen);
 sysret_t sys_getsockname(int socket, struct musl_sockaddr *name, socklen_t *namelen);
+sysret_t sys_listen(int socket, int backlog);
+sysret_t sys_accept(int socket, struct musl_sockaddr *addr, socklen_t *addrlen);
+sysret_t sys_connect(int socket, const struct musl_sockaddr *name, socklen_t namelen);
+sysret_t sys_sendto(int socket, const void *dataptr, size_t size, int flags, const struct musl_sockaddr *to, socklen_t tolen);
+sysret_t sys_recvfrom(int socket, void *mem, size_t len, int flags, struct musl_sockaddr *from, socklen_t *fromlen);
 
 #ifdef __cplusplus
 }
