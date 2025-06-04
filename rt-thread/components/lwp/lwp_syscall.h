@@ -192,6 +192,15 @@ sysret_t sys_sigtimedwait(const sigset_t *sigset, siginfo_t *info, const struct 
 
 sysret_t sys_tkill(int tid, int sig);
 
+typedef uint32_t socklen_t;
+struct musl_sockaddr;
+
+/* sal */
+sysret_t sys_socket(int domain, int type, int protocol);
+sysret_t sys_bind(int socket, const struct musl_sockaddr *name, socklen_t namelen);
+sysret_t sys_setsockopt(int socket, int level, int optname, const void *optval, socklen_t optlen);
+sysret_t sys_getsockname(int socket, struct musl_sockaddr *name, socklen_t *namelen);
+
 #ifdef __cplusplus
 }
 #endif
