@@ -102,6 +102,9 @@ sysret_t sys_getdents(int fd, struct libc_dirent *dirp, size_t nbytes);
 sysret_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
 sysret_t sys_fstatat(int dirfd, const char *pathname, struct stat *buf, int flags);
 size_t sys_lseek(int fd, size_t offset, int whence);
+sysret_t sys_utimensat(int __fd, const char *__path, const struct timespec __times[2], int __flags);
+ssize_t sys_pread64(int fd, void *buf, int size, size_t offset);
+sysret_t sys_statfs(const char *path, struct statfs *buf);
 
 /* mm */
 rt_base_t sys_brk(void *addr);
@@ -119,7 +122,11 @@ sysret_t sys_pipe(int fd[2]);
 sysret_t sys_set_tid_address(int *tidptr);
 sysret_t sys_times(void *tms);
 sysret_t sys_getrlimit(unsigned int resource, unsigned long rlim[2]);
+sysret_t sys_setrlimit(unsigned int resource, struct rlimit *rlim);
 sysret_t sys_prlimit64(pid_t pid, unsigned int resource, const struct rlimit *new_rlim,struct rlimit *old_rlim);
+sysret_t sys_getegid();
+sysret_t sys_get_robust_list(int tid, struct robust_list_head **head_ptr, size_t *len_ptr);
+sysret_t sys_set_robust_list(struct robust_list_head *head, size_t len);
 
 /* snyc */
 rt_sem_t   sys_sem_create(const char *name, rt_uint32_t value, rt_uint8_t flag);

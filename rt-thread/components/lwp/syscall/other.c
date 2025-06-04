@@ -301,6 +301,11 @@ sysret_t sys_get_euid()
     return 0;
 }
 
+sysret_t sys_getegid()
+{
+    return 0;
+}
+
 /**
  * @brief Set the robust list for the current thread.
  *

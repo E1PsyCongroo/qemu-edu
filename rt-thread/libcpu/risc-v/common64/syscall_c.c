@@ -36,8 +36,8 @@ void syscall_handler(struct rt_hw_stack_frame *regs)
     if (syscallid == 0)
     {
         LOG_E("syscall id = 0!\n");
-        while (1)
-            ;
+        // while (1)
+        //     ;
     }
 
     syscallfunc_t syscallfunc = (syscallfunc_t)lwp_get_sys_api(syscallid);
