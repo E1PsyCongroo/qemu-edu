@@ -602,7 +602,7 @@ sysret_t sys_prlimit64(pid_t                pid,
     {
         if (!lwp_user_accessable((void *)old_rlim, sizeof(struct rlimit)))
             return -EFAULT;
-        printf("sys_prlimit64: resource = %d, old_rlim = %p", resource, old_rlim);
+        // printf("sys_prlimit64: resource = %d, old_rlim = %p", resource, old_rlim);
         switch (resource)
         {
             case RLIMIT_STACK: {

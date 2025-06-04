@@ -289,3 +289,8 @@ sysret_t sys_shmdt(void *shm_vaddr)
 {
     return lwp_shmdt(shm_vaddr);
 }
+
+sysret_t sys_mprotect(void *addr, size_t len, int prot)
+{
+    return 0;
+}

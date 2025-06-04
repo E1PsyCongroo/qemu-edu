@@ -101,11 +101,13 @@ sysret_t sys_mkdir(int dirfd, const char *path, mode_t mode);
 sysret_t sys_getdents(int fd, struct libc_dirent *dirp, size_t nbytes);
 sysret_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
 sysret_t sys_fstatat(int dirfd, const char *pathname, struct stat *buf, int flags);
+size_t sys_lseek(int fd, size_t offset, int whence);
 
 /* mm */
 rt_base_t sys_brk(void *addr);
 void     *sys_mmap2(void *addr, size_t length, int prot, int flags, int fd, size_t pgoffset);
 sysret_t  sys_munmap(void *addr, size_t length);
+sysret_t sys_mprotect(void *addr, size_t len, int prot);
 
 /* other */
 sysret_t sys_gettimeofday(struct timeval *tp, struct timezone *tzp);
@@ -187,6 +189,8 @@ sysret_t sys_setpgid(pid_t pid, pid_t pgid);
 sysret_t sys_getpgid(pid_t pid);
 sysret_t sys_setitimer(int which, const struct itimerspec *restrict new, struct itimerspec *restrict old);
 sysret_t sys_sigtimedwait(const sigset_t *sigset, siginfo_t *info, const struct timespec *timeout, size_t sigsize);
+
+sysret_t sys_tkill(int tid, int sig);
 
 #ifdef __cplusplus
 }
