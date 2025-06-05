@@ -294,3 +294,41 @@ sysret_t sys_mprotect(void *addr, size_t len, int prot)
 {
     return 0;
 }
+
+sysret_t sys_get_mempolicy(int *policy, unsigned long *nmask, unsigned long maxnode, void *addr, unsigned long flags)
+{
+    /* 检查参数有效性 */
+    if (policy && !lwp_user_accessable((void *)policy, sizeof(int)))
+        return -EFAULT;
+
+    if (nmask && !lwp_user_accessable((void *)nmask, (maxnode + 7) / 8))
+        return -EFAULT;
+
+    /* 不支持特定地址的策略查询，如果指定了地址则返回错误 */
+    if (addr != NULL && flags & 0x1)  /* 假设 0x1 是 MPOL_F_ADDR */
+        return -EINVAL;
+
+    /* 当前 RT-Thread 仅支持默认策略 */
+    if (policy) {
+        int default_policy = 0;
+        if (!lwp_put_to_user(policy, &default_policy, sizeof(int)))
+            return -EFAULT;
+    }
+
+    /* 如果需要返回节点掩码，设置为只使用节点 0 */
+    if (nmask) {
+        /* 清零所有节点掩码 */
+        size_t nmask_size = (maxnode + 7) / 8; /* 字节数 */
+        char zero_mask[nmask_size];
+        
+        rt_memset(zero_mask, 0, nmask_size);
+        
+        /* 设置节点 0 为活跃 */
+        zero_mask[0] = 1; /* 仅将第一个位设为 1 */
+        
+        if (!lwp_put_to_user(nmask, zero_mask, nmask_size))
+            return -EFAULT;
+    }
+
+    return 0;
+}

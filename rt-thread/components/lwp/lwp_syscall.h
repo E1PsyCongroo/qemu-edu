@@ -117,6 +117,7 @@ sysret_t sys_mprotect(void *addr, size_t len, int prot);
 sysret_t sys_madvise(void *addr, size_t len, int behav);
 sysret_t sys_shmget(size_t key, size_t size, int create);
 void *sys_shmat(int shmid, void *shmaddr);
+sysret_t sys_get_mempolicy(int *policy, unsigned long *nmask, unsigned long maxnode, void *addr, unsigned long flags);
 
 /* other */
 sysret_t sys_gettimeofday(struct timeval *tp, struct timezone *tzp);
@@ -182,9 +183,16 @@ void         sys_exit_critical(void);
 
 /* sched */
 sysret_t sys_sched_yield(void);
+sysret_t sys_sched_getaffinity(const pid_t pid, size_t size, void *set);
+sysret_t sys_sched_getparam(const pid_t tid, void *param);
+sysret_t sys_sched_getscheduler(int tid);
+sysret_t sys_sched_setaffinity(pid_t pid, size_t size, void *set);
+sysret_t sys_sched_setscheduler(int tid, int policy, void *param);
 
 /* clock */
 sysret_t sys_clock_gettime(clockid_t clk, struct timespec *ts);
+sysret_t sys_clock_getres(clockid_t clk, struct timespec *ts);
+sysret_t sys_clock_nanosleep(clockid_t clk, int flags, const struct timespec *rqtp, struct timespec *rmtp);
 
 /* signal */
 struct k_sigaction;
@@ -219,6 +227,7 @@ sysret_t sys_accept(int socket, struct musl_sockaddr *addr, socklen_t *addrlen);
 sysret_t sys_connect(int socket, const struct musl_sockaddr *name, socklen_t namelen);
 sysret_t sys_sendto(int socket, const void *dataptr, size_t size, int flags, const struct musl_sockaddr *to, socklen_t tolen);
 sysret_t sys_recvfrom(int socket, void *mem, size_t len, int flags, struct musl_sockaddr *from, socklen_t *fromlen);
+sysret_t sys_socketpair(int domain, int type, int protocol, int fd[2]);
 
 #ifdef __cplusplus
 }
