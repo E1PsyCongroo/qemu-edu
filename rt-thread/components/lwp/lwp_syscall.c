@@ -189,6 +189,11 @@ const static struct rt_syscall_def func_table[] = {
     [99]=SYSCALL_SIGN(sys_set_robust_list),
     [283]=SYSCALL_SIGN(sys_membarrier),
     [233]=SYSCALL_SIGN(sys_madvise),
+    [46]=SYSCALL_SIGN(sys_ftruncate),
+    [81]=SYSCALL_SIGN(sys_sync),
+    [82]=SYSCALL_SIGN(sys_fsync),
+    [194]=SYSCALL_SIGN(sys_shmget),
+    [196]=SYSCALL_SIGN(sys_shmat)
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)

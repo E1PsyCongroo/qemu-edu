@@ -400,7 +400,7 @@ sysret_t sys_sched_setparam(pid_t tid, void *param)
   */
 sysret_t sys_sched_yield(void)
 {
-    rt_thread_yield();
+    // rt_thread_yield();
     return 0;
 }
 

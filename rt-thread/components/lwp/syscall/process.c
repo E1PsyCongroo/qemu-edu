@@ -541,7 +541,7 @@ long _sys_clone_args(unsigned long flags, void *user_stack, int *new_tid, void *
             goto fail;
         }
 
-        struct rt_lwp *self_lwp = self->lwp;
+        // struct rt_lwp *self_lwp = self->lwp;
 
         if (lwp_fork_aspace(lwp, self_lwp) != 0)
         {

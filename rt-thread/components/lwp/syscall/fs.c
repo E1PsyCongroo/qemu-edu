@@ -2584,3 +2584,17 @@ sysret_t sys_fstatat(int dirfd, const char *pathname, struct stat *buf, int flag
 
     return ret;
 }
+
+sysret_t sys_fsnyc(int fd)
+{
+    int ret;
+
+    ret = fsync(fd);
+
+    return (ret < 0 ? GET_ERRNO() : ret);
+}
+
+sysret_t sys_sync()
+{
+    return 0;
+}
