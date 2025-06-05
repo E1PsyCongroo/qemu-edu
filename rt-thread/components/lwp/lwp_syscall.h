@@ -105,6 +105,9 @@ size_t sys_lseek(int fd, size_t offset, int whence);
 sysret_t sys_utimensat(int __fd, const char *__path, const struct timespec __times[2], int __flags);
 ssize_t sys_pread64(int fd, void *buf, int size, size_t offset);
 sysret_t sys_statfs(const char *path, struct statfs *buf);
+sysret_t sys_ftruncate(int fd, size_t length);
+sysret_t sys_fsync(int fd);
+sysret_t sys_sync();
 
 /* mm */
 rt_base_t sys_brk(void *addr);
@@ -112,6 +115,8 @@ void     *sys_mmap2(void *addr, size_t length, int prot, int flags, int fd, size
 sysret_t  sys_munmap(void *addr, size_t length);
 sysret_t sys_mprotect(void *addr, size_t len, int prot);
 sysret_t sys_madvise(void *addr, size_t len, int behav);
+sysret_t sys_shmget(size_t key, size_t size, int create);
+void *sys_shmat(int shmid, void *shmaddr);
 
 /* other */
 sysret_t sys_gettimeofday(struct timeval *tp, struct timezone *tzp);
