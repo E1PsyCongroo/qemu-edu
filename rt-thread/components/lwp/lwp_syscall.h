@@ -111,12 +111,13 @@ rt_base_t sys_brk(void *addr);
 void     *sys_mmap2(void *addr, size_t length, int prot, int flags, int fd, size_t pgoffset);
 sysret_t  sys_munmap(void *addr, size_t length);
 sysret_t sys_mprotect(void *addr, size_t len, int prot);
+sysret_t sys_madvise(void *addr, size_t len, int behav);
 
 /* other */
 sysret_t sys_gettimeofday(struct timeval *tp, struct timezone *tzp);
 sysret_t sys_settimeofday(const struct timeval *tv, const struct timezone *tzp);
-sysret_t sys_get_uid();
-sysret_t sys_get_euid();
+sysret_t sys_get_uid(void);
+sysret_t sys_get_euid(void);
 sysret_t sys_uname(struct utsname *uts);
 sysret_t sys_pipe(int fd[2]);
 sysret_t sys_set_tid_address(int *tidptr);
@@ -124,9 +125,10 @@ sysret_t sys_times(void *tms);
 sysret_t sys_getrlimit(unsigned int resource, unsigned long rlim[2]);
 sysret_t sys_setrlimit(unsigned int resource, struct rlimit *rlim);
 sysret_t sys_prlimit64(pid_t pid, unsigned int resource, const struct rlimit *new_rlim,struct rlimit *old_rlim);
-sysret_t sys_getegid();
+sysret_t sys_getegid(void);
 sysret_t sys_get_robust_list(int tid, struct robust_list_head **head_ptr, size_t *len_ptr);
 sysret_t sys_set_robust_list(struct robust_list_head *head, size_t len);
+sysret_t sys_membarrier(int cmd, unsigned int flags, int cpu_id);
 
 /* snyc */
 rt_sem_t   sys_sem_create(const char *name, rt_uint32_t value, rt_uint8_t flag);

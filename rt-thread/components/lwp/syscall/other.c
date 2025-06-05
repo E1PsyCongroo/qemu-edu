@@ -751,3 +751,41 @@ sysret_t sys_times(void *tms)
 
     return 0;
 }
+
+sysret_t sys_membarrier(int cmd, unsigned int flags, int cpu_id)
+{
+    #define MEMBARRIER_CMD_QUERY                 0
+    #define MEMBARRIER_CMD_GLOBAL                1
+    #define MEMBARRIER_CMD_GLOBAL_EXPEDITED      2
+    #define MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED 3
+    #define MEMBARRIER_CMD_PRIVATE_EXPEDITED     4
+    #define MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED 5
+    #define MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE 6
+    #define MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE 7
+
+    if (cmd == MEMBARRIER_CMD_QUERY) {
+        return (1 << MEMBARRIER_CMD_GLOBAL);
+    }
+
+    if (flags != 0) {
+        return -EINVAL;
+    }
+
+    switch (cmd) {
+        case MEMBARRIER_CMD_GLOBAL:
+            rt_hw_dmb();
+            rt_hw_dsb();
+            rt_hw_isb();
+            
+            #ifdef RT_USING_SMP
+            {
+                /* Execute IPI to force memory barrier on all other CPUs */
+                rt_hw_ipi_send(RT_CPU_MASK_ALL & ~(1 << rt_hw_cpu_id()), RT_SCHEDULE_IPI);
+            }
+            #endif
+            return 0;
+            
+        default:
+            return -EINVAL;
+    }
+}
