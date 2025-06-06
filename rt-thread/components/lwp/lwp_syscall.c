@@ -116,6 +116,10 @@ sysret_t lwp_teardown(struct rt_lwp *lwp, void (*cb)(void))
 }
 #endif
 
+sysret_t sys_dontcare() {
+    return 0;
+}
+
 const static struct rt_syscall_def func_table[] = {
     [17]=SYSCALL_SIGN(sys_getcwd),
     [59]=SYSCALL_SIGN(sys_pipe),
@@ -181,6 +185,7 @@ const static struct rt_syscall_def func_table[] = {
     [206]=SYSCALL_SIGN(sys_sendto),
     [207]=SYSCALL_SIGN(sys_recvfrom),
     [177]=SYSCALL_SIGN(sys_getegid),
+    [179]=SYSCALL_SIGN(sys_dontcare),
     [88]=SYSCALL_SIGN(sys_utimensat),
     [67]=SYSCALL_SIGN(sys_pread64),
     [100]=SYSCALL_SIGN(sys_get_robust_list),
@@ -193,7 +198,10 @@ const static struct rt_syscall_def func_table[] = {
     [81]=SYSCALL_SIGN(sys_sync),
     [82]=SYSCALL_SIGN(sys_fsync),
     [194]=SYSCALL_SIGN(sys_shmget),
-    [196]=SYSCALL_SIGN(sys_shmat)
+    [195]=SYSCALL_SIGN(sys_shmctl),
+    [196]=SYSCALL_SIGN(sys_shmat),
+    [48]=SYSCALL_SIGN(sys_dontcare),
+    [116]=SYSCALL_SIGN(sys_dontcare)
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)
