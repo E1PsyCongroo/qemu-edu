@@ -203,6 +203,7 @@ const static struct rt_syscall_def func_table[] = {
     [119]=SYSCALL_SIGN(sys_sched_getaffinity),
     [115]=SYSCALL_SIGN(sys_clock_nanosleep),
     [199]=SYSCALL_SIGN(sys_socketpair),
+    [157]=SYSCALL_SIGN(sys_setsid),
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)

@@ -1028,6 +1028,7 @@ int sal_sendto(int socket, const void *dataptr, size_t size, int flags,
 
 int sal_socket(int domain, int type, int protocol)
 {
+    LOG_I("SAL socket create, domain: %d, type: %d, protocol: %d", domain, type, protocol);
     int retval;
     int socket, proto_socket;
     struct sal_socket *sock;
