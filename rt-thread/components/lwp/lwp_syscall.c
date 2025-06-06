@@ -201,7 +201,17 @@ const static struct rt_syscall_def func_table[] = {
     [195]=SYSCALL_SIGN(sys_shmctl),
     [196]=SYSCALL_SIGN(sys_shmat),
     [48]=SYSCALL_SIGN(sys_dontcare),
-    [116]=SYSCALL_SIGN(sys_dontcare)
+    [116]=SYSCALL_SIGN(sys_dontcare),
+    [120]=SYSCALL_SIGN(sys_sched_getscheduler),
+    [121]=SYSCALL_SIGN(sys_sched_getparam),
+    [123]=SYSCALL_SIGN(sys_sched_getaffinity),
+    [236]=SYSCALL_SIGN(sys_get_mempolicy),
+    [114]=SYSCALL_SIGN(sys_clock_getres),
+    [122]=SYSCALL_SIGN(sys_sched_setaffinity),
+    [119]=SYSCALL_SIGN(sys_sched_getaffinity),
+    [115]=SYSCALL_SIGN(sys_clock_nanosleep),
+    [199]=SYSCALL_SIGN(sys_socketpair),
+    [157]=SYSCALL_SIGN(sys_setsid),
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)

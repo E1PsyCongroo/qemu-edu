@@ -21,7 +21,7 @@
 /* end of rt_vsnprintf options */
 
 /* rt_vsscanf options */
-/* # */
+
 /* end of rt_vsscanf options */
 
 /* rt_memset options */
@@ -162,7 +162,7 @@
 #define RT_USING_DFS
 #define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
-#define DFS_FD_MAX 128
+#define DFS_FD_MAX 32
 #define RT_USING_DFS_V2
 #define RT_USING_DFS_ELMFAT
 
@@ -260,7 +260,7 @@
 /* Interprocess Communication (IPC) */
 
 #define RT_USING_POSIX_PIPE
-#define RT_USING_POSIX_PIPE_SIZE 1024
+#define RT_USING_POSIX_PIPE_SIZE 512
 
 /* Socket is in the 'Network' category */
 

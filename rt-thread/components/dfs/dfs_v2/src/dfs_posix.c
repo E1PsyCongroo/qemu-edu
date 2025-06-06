@@ -409,6 +409,8 @@ ssize_t write(int fd, const void *buf, size_t len)
         return -1;
     }
 
+    fsync(fd); // Ensure data is flushed to disk
+
     return result;
 }
 RTM_EXPORT(write);
