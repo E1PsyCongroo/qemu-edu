@@ -20,9 +20,16 @@ int main(void)
         rt_kprintf("Failed to mount filesystem\n");
         return -1;
     }
+    
+    mkdir("/block", 0777);
+    if (dfs_mount("virtio-blk1", "/block", "ext", 0, NULL) != 0) {
+        rt_kprintf("Failed to mount filesystem\n");
+        return -1;
+    }
+    
     mkdir("/lib", 0777);
     dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-linux-riscv64-lp64d.so.1");
-    // dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-musl-riscv64-sf.so.1");
+    dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-musl-riscv64-sf.so.1");
     dfs_file_symlink("/dev/tty", "/dev/ttyS0");
 
     mkdir("/bin", 0777);
