@@ -115,8 +115,9 @@ void     *sys_mmap2(void *addr, size_t length, int prot, int flags, int fd, size
 sysret_t  sys_munmap(void *addr, size_t length);
 sysret_t sys_mprotect(void *addr, size_t len, int prot);
 sysret_t sys_madvise(void *addr, size_t len, int behav);
-sysret_t sys_shmget(size_t key, size_t size, int create);
+sysret_t sys_shmget(size_t key, size_t size);
 void *sys_shmat(int shmid, void *shmaddr);
+sysret_t sys_shmctl(int shmid, int cmd);
 
 /* other */
 sysret_t sys_gettimeofday(struct timeval *tp, struct timezone *tzp);
