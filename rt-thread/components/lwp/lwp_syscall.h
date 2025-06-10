@@ -108,6 +108,7 @@ sysret_t sys_statfs(const char *path, struct statfs *buf);
 sysret_t sys_ftruncate(int fd, size_t length);
 sysret_t sys_fsync(int fd);
 sysret_t sys_sync();
+ssize_t sys_readlinkat(int dirfd, char *path, char *buf, size_t bufsz);
 
 /* mm */
 rt_base_t sys_brk(void *addr);
