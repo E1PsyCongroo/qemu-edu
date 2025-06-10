@@ -3,7 +3,7 @@ CC = $(CROSS_COMPILE)gcc
 
 INC += ./include
 
-CFLAGS += -Wall -O2 -march=rv64imafdc -mabi=lp64d
+CFLAGS += -Wall -O2 -march=rv64imafdc
 CFLAGS += -static
 CFLAGS += $(addprefix -I, $(INC))
 
