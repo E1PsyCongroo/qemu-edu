@@ -196,9 +196,9 @@ sysret_t sys_madvise(void *addr, size_t len, int behav)
  * @warning Using a `NULL` or invalid `key` may result in undefined behavior. When creating
  *          a new segment, ensure that `size` is non-zero and meaningful.
  */
-sysret_t sys_shmget(size_t key, size_t size, int create)
+sysret_t sys_shmget(size_t key, size_t size)
 {
-    return lwp_shmget(key, size, create);
+    return lwp_shmget(key, size, 1);
 }
 
 /**
