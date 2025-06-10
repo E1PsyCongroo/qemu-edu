@@ -430,6 +430,14 @@
 /* AT32 HAL & SDK Drivers */
 
 /* end of AT32 HAL & SDK Drivers */
+
+/* HC32 DDL Drivers */
+
+/* end of HC32 DDL Drivers */
+
+/* NXP HAL & SDK Drivers */
+
+/* end of NXP HAL & SDK Drivers */
 /* end of HAL & SDK Drivers */
 
 /* sensors drivers */
@@ -515,6 +523,9 @@
 #define BSP_USING_VIRTIO
 #define BSP_USING_VIRTIO_BLK
 #define BSP_USING_VIRTIO_NET
+#define BSP_USING_VIRTIO_CONSOLE
+#define BSP_USING_VIRTIO_GPU
+#define BSP_USING_VIRTIO_INPUT
 /* end of LoongArch QEMU virt64 configs */
 #define BOARD_QEMU_VIRT_LOONGARCH64
 #define ENABLE_FPU

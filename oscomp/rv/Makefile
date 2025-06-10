@@ -1,4 +1,4 @@
-CROSS_COMPILE = riscv64-linux-musl-
+CROSS_COMPILE = riscv64-unknown-linux-musl-
 CC = $(CROSS_COMPILE)gcc
 
 INC += ./include

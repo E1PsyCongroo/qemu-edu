@@ -1,8 +1,9 @@
-FROM docker.educg.net/cg/os-contest:20250226
-ARG HTTP_PORT
-ARG HTTPS_PORT
-ARG http_port
-ARG https_port
+# FROM docker.educg.net/cg/os-contest:20250226
+FROM ubuntu:24.04
+ARG HTTP_PORT=7890
+ARG HTTPS_PORT=7890
+ARG http_port=7890
+ARG https_port=7890
 ENV HTTP_PROXY=http://127.0.0.1:${HTTP_PORT}
 ENV HTTPS_PROXY=http://127.0.0.1:${HTTPS_PORT}
 ENV ALL_PROXY=http://127.0.0.1:${HTTP_PORT}
@@ -11,8 +12,14 @@ ENV http_proxy=http://127.0.0.1:${http_port}
 ENV https_proxy=http://127.0.0.1:${https_port}
 ENV all_proxy=http://127.0.0.1:${http_port}
 ENV no_proxy=localhost,127.0.0.1,::1
+RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse" > /etc/apt/sources.list && \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse" >> /etc/apt/sources.list
 RUN apt-get -y update
-RUN apt-get -y install tar git build-essential cmake wget curl dosfstools gdb-multiarch qemu-system-misc scons python3-kconfiglib python3-tqdm python3-requests python3-yaml vim
+RUN apt-get -y install tar git build-essential cmake wget curl
+RUN apt-get -y install dosfstools gdb-multiarch qemu-system-misc
+RUN apt-get -y install scons python3-kconfiglib python3-tqdm python3-requests python3-yaml vim
 COPY toolchains /root/toolchains
 RUN bash /root/toolchains/install_ubuntu.sh --gitee
 RUN tar jxvf /root/toolchains/qemu-virt-riscv64/riscv64gc-linux-musleabi_for_x86_64-pc-linux-gnu_latest.tar.bz2 -C /opt

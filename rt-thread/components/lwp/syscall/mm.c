@@ -332,3 +332,8 @@ sysret_t sys_get_mempolicy(int *policy, unsigned long *nmask, unsigned long maxn
 
     return 0;
 }
+
+sysret_t sys_shmctl(int shmid, int cmd)
+{
+    return 0;
+}
