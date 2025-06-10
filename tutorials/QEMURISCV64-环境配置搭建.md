@@ -391,9 +391,9 @@ sudo tar zxf loongarch64-musl-gcc-nightly-2025-3-15.tar.gz -C /opt/
 ## 配置环境变量
 
 ```
-export RTT_EXEC_PATH=/opt/riscv64gc-linux-musleabi_for_x86_64-pc-linux-gnu/bin
-export RTT_CC_PREFIX=riscv64-unknown-linux-musl-
-export PATH=/opt/riscv64gc-linux-musleabi_for_x86_64-pc-linux-gnu/bin:$PATH
+export RTT_EXEC_PATH=/opt/loongarch64/bin
+export RTT_CC_PREFIX=loongarch64-linux-musl-
+export PATH=/opt/loongarch64/bin:$PATH
 ```
 
 ## 环境搭建
