@@ -459,7 +459,7 @@
 /* end of Micrium: Micrium software products porting for RT-Thread */
 #define PKG_USING_LWEXT4
 #define RT_USING_DFS_LWEXT4
-#define PKG_USING_LWEXT4_V200
+#define PKG_USING_LWEXT4_LATEST_VERSION
 /* end of system packages */
 
 /* peripheral libraries and drivers */
@@ -485,6 +485,14 @@
 /* AT32 HAL & SDK Drivers */
 
 /* end of AT32 HAL & SDK Drivers */
+
+/* HC32 DDL Drivers */
+
+/* end of HC32 DDL Drivers */
+
+/* NXP HAL & SDK Drivers */
+
+/* end of NXP HAL & SDK Drivers */
 /* end of HAL & SDK Drivers */
 
 /* sensors drivers */
