@@ -3,6 +3,8 @@
 #include "lwp_user_mm.h"
 #include "lwp_internal.h"
 
+#define DBG_LVL DBG_INFO
+
 #include "rtdbg.h"
 #include "rtthread.h"
 #include "syscall_generic.h"
@@ -998,6 +1000,7 @@ sysret_t sys_execve(const char *path, char * const argv[], char * const envp[])
         if (error)
         {
             error = -EFAULT;
+            LOG_E("lwp_args_put_argv failed: %d", error);
             goto quit;
         }
     }
@@ -1008,6 +1011,7 @@ sysret_t sys_execve(const char *path, char * const argv[], char * const envp[])
         if (error)
         {
             error = -EFAULT;
+            LOG_E("lwp_args_put_argv failed: %d", error);
             goto quit;
         }
     }
