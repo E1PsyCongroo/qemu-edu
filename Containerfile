@@ -1,21 +1,21 @@
-# FROM docker.educg.net/cg/os-contest:20250226
-FROM ubuntu:24.04
-ARG HTTP_PORT=7890
-ARG HTTPS_PORT=7890
-ARG http_port=7890
-ARG https_port=7890
-ENV HTTP_PROXY=http://127.0.0.1:${HTTP_PORT}
-ENV HTTPS_PROXY=http://127.0.0.1:${HTTPS_PORT}
-ENV ALL_PROXY=http://127.0.0.1:${HTTP_PORT}
-ENV NO_PROXY=localhost,127.0.0.1,::1
-ENV http_proxy=http://127.0.0.1:${http_port}
-ENV https_proxy=http://127.0.0.1:${https_port}
-ENV all_proxy=http://127.0.0.1:${http_port}
-ENV no_proxy=localhost,127.0.0.1,::1
-RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse" > /etc/apt/sources.list && \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse" >> /etc/apt/sources.list
+FROM docker.educg.net/cg/os-contest:20250226
+# FROM ubuntu:24.04
+# ARG HTTP_PORT=7890
+# ARG HTTPS_PORT=7890
+# ARG http_port=7890
+# ARG https_port=7890
+# ENV HTTP_PROXY=http://127.0.0.1:${HTTP_PORT}
+# ENV HTTPS_PROXY=http://127.0.0.1:${HTTPS_PORT}
+# ENV ALL_PROXY=http://127.0.0.1:${HTTP_PORT}
+# ENV NO_PROXY=localhost,127.0.0.1,::1
+# ENV http_proxy=http://127.0.0.1:${http_port}
+# ENV https_proxy=http://127.0.0.1:${https_port}
+# ENV all_proxy=http://127.0.0.1:${http_port}
+# ENV no_proxy=localhost,127.0.0.1,::1
+# RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse" > /etc/apt/sources.list && \
+#     echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+#     echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse" >> /etc/apt/sources.list && \
+#     echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse" >> /etc/apt/sources.list
 RUN apt-get -y update
 RUN apt-get -y install tar git build-essential cmake wget curl
 RUN apt-get -y install dosfstools gdb-multiarch qemu-system-misc

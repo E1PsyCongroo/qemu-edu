@@ -33,6 +33,7 @@ def main():
         subprocess.run(
             [
                 "wget",
+                "--no-check-certificate",
                 "https://github.com/LoongsonLab/oscomp-toolchains-for-oskernel/releases/download/loongarch64-cross-toolchains-qemu/loongarch64-musl-gcc-nightly-2025-3-27.tar.gz",
                 "-P",
                 str(toolchain_qemu_longarch.parent),
@@ -49,6 +50,7 @@ def main():
         subprocess.run(
             [
                 "wget",
+                "--no-check-certificate",
                 "https://download.rt-thread.org/download/rt-smart/toolchains/riscv64gc-linux-musleabi_for_x86_64-pc-linux-gnu_latest.tar.bz2",
                 "-P",
                 str(toolchain_riscv.parent),
