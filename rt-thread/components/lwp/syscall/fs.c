@@ -2609,3 +2609,161 @@ sysret_t sys_sync()
 {
     return 0;
 }
+
+sysret_t sys_pselect6(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+                     const struct timespec *timeout_ts, const sigset_t *sigmask)
+{
+    int     ret      = -1;
+    fd_set *kreadfds = RT_NULL, *kwritefds = RT_NULL, *kexceptfds = RT_NULL;
+    struct timeval timeout;
+    struct timeval *ptimeout = RT_NULL;
+    sigset_t *ksigmask = RT_NULL;
+    sigset_t old_sigmask;
+
+    // 检查并复制readfds
+    if (readfds)
+    {
+        if (!lwp_user_accessable((void *)readfds, sizeof *readfds))
+        {
+            SET_ERRNO(EFAULT);
+            goto quit;
+        }
+        kreadfds = (fd_set *)kmem_get(sizeof *kreadfds);
+        if (!kreadfds)
+        {
+            SET_ERRNO(ENOMEM);
+            goto quit;
+        }
+        lwp_get_from_user(kreadfds, readfds, sizeof *kreadfds);
+    }
+    
+    // 检查并复制writefds
+    if (writefds)
+    {
+        if (!lwp_user_accessable((void *)writefds, sizeof *writefds))
+        {
+            SET_ERRNO(EFAULT);
+            goto quit;
+        }
+        kwritefds = (fd_set *)kmem_get(sizeof *kwritefds);
+        if (!kwritefds)
+        {
+            SET_ERRNO(ENOMEM);
+            goto quit;
+        }
+        lwp_get_from_user(kwritefds, writefds, sizeof *kwritefds);
+    }
+    
+    // 检查并复制exceptfds
+    if (exceptfds)
+    {
+        if (!lwp_user_accessable((void *)exceptfds, sizeof *exceptfds))
+        {
+            SET_ERRNO(EFAULT);
+            goto quit;
+        }
+        kexceptfds = (fd_set *)kmem_get(sizeof *kexceptfds);
+        if (!kexceptfds)
+        {
+            SET_ERRNO(EINVAL);
+            goto quit;
+        }
+        lwp_get_from_user(kexceptfds, exceptfds, sizeof *kexceptfds);
+    }
+
+    // 处理超时参数
+    if (timeout_ts)
+    {
+        struct timespec ktimeout_ts;
+        
+        if (!lwp_user_accessable((void *)timeout_ts, sizeof(struct timespec)))
+        {
+            SET_ERRNO(EFAULT);
+            goto quit;
+        }
+        
+        lwp_get_from_user(&ktimeout_ts, (void *)timeout_ts, sizeof(struct timespec));
+        
+        // 将timespec转换为timeval
+        timeout.tv_sec = ktimeout_ts.tv_sec;
+        timeout.tv_usec = ktimeout_ts.tv_nsec / 1000;
+        ptimeout = &timeout;
+    }
+
+    // 处理信号掩码
+    if (sigmask)
+    {
+        if (!lwp_user_accessable((void *)sigmask, sizeof(sigset_t)))
+        {
+            SET_ERRNO(EFAULT);
+            goto quit;
+        }
+        
+        ksigmask = (sigset_t *)kmem_get(sizeof(sigset_t));
+        if (!ksigmask)
+        {
+            SET_ERRNO(ENOMEM);
+            goto quit;
+        }
+        
+        lwp_get_from_user(ksigmask, (void *)sigmask, sizeof(sigset_t));
+        
+        // 保存旧的信号掩码，设置新的信号掩码
+        rt_thread_t thread = rt_thread_self();
+        rt_memcpy(&old_sigmask, &thread->sig_mask, sizeof(sigset_t));
+        rt_memcpy(&thread->sig_mask, ksigmask, sizeof(sigset_t));
+    }
+
+    // 调用select函数
+    ret = select(nfds, kreadfds, kwritefds, kexceptfds, ptimeout);
+    
+    // 恢复旧的信号掩码
+    if (sigmask)
+    {
+        rt_thread_t thread = rt_thread_self();
+        rt_memcpy(&thread->sig_mask, &old_sigmask, sizeof(sigset_t));
+    }
+
+    // 将结果复制回用户空间
+    if (ret > 0)
+    {
+        if (kreadfds)
+        {
+            lwp_put_to_user(readfds, kreadfds, sizeof *kreadfds);
+        }
+        if (kwritefds)
+        {
+            lwp_put_to_user(writefds, kwritefds, sizeof *kwritefds);
+        }
+        if (kexceptfds)
+        {
+            lwp_put_to_user(exceptfds, kexceptfds, sizeof *kexceptfds);
+        }
+    }
+
+quit:
+    if (ret < 0)
+    {
+        ret = GET_ERRNO();
+    }
+
+    // 释放内核内存
+    if (kreadfds)
+    {
+        kmem_put(kreadfds);
+    }
+    if (kwritefds)
+    {
+        kmem_put(kwritefds);
+    }
+    if (kexceptfds)
+    {
+        kmem_put(kexceptfds);
+    }
+    if (ksigmask)
+    {
+        kmem_put(ksigmask);
+    }
+    
+    return ret;
+}

@@ -1225,3 +1225,27 @@ sysret_t sys_wait4(pid_t pid, int *status, int options, struct rusage *ru)
 {
     return lwp_waitpid(pid, status, options, ru);
 }
+
+sysret_t sys_umask(mode_t mask)
+{
+    mode_t old_umask = 022;
+    struct rt_lwp *lwp = lwp_self();
+
+    if (!lwp)
+    {
+        return -EINVAL;
+    }
+
+    mask &= 0777;
+
+#ifdef RT_USING_MUSLLIBC
+    old_umask = lwp->umask;
+    lwp->umask = mask;
+#else
+    old_umask = 022;  
+#endif
+
+    // printf("sys_umask: old_umask: %o, new_umask: %o\n", old_umask, mask);
+
+    return old_umask;
+}

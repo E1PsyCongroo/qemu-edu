@@ -789,3 +789,73 @@ sysret_t sys_membarrier(int cmd, unsigned int flags, int cpu_id)
             return -EINVAL;
     }
 }
+
+sysret_t sys_getrusage(int who, struct rusage *usage)
+{
+    struct rusage k_usage;
+    rt_thread_t thread;
+    rt_tick_t total_tick;
+    
+    /* Define RUSAGE constants if they don't exist */
+    #define RUSAGE_SELF     0    /* Current process/thread */
+    #define RUSAGE_CHILDREN (-1) /* Terminated child processes */
+    #define RUSAGE_THREAD   1    /* Current thread only */
+    
+    if (!lwp_user_accessable((void *)usage, sizeof(struct rusage)))
+    {
+        return -EFAULT;
+    }
+    
+    /* Initialize the structure with zeros */
+    rt_memset(&k_usage, 0, sizeof(struct rusage));
+    
+    switch (who)
+    {
+    case RUSAGE_SELF:
+        /* Get current thread resource usage */
+        thread = rt_thread_self();
+        if (thread)
+        {
+            /* Convert thread runtime to timeval structure */
+            /* RT-Thread may store tick count differently - using the thread timer instead */
+            total_tick = thread->thread_timer.timeout_tick;
+            k_usage.ru_utime.tv_sec = total_tick / RT_TICK_PER_SECOND;
+            k_usage.ru_utime.tv_usec = (total_tick % RT_TICK_PER_SECOND) * (1000000 / RT_TICK_PER_SECOND);
+            
+            /* In RT-Thread user and system time are not differentiated */
+            k_usage.ru_stime.tv_sec = 0;
+            k_usage.ru_stime.tv_usec = 0;
+            
+            /* Set approximate memory usage if available */
+            k_usage.ru_maxrss = thread->stack_size / 1024; /* kilobytes */
+        }
+        break;
+        
+    case RUSAGE_CHILDREN:
+        /* Not fully supported in RT-Thread, return minimal data */
+        k_usage.ru_utime.tv_sec = 0;
+        k_usage.ru_utime.tv_usec = 0;
+        break;
+        
+    case RUSAGE_THREAD:
+        /* Same as RUSAGE_SELF for RT-Thread in single thread mode */
+        thread = rt_thread_self();
+        if (thread)
+        {
+            total_tick = thread->thread_timer.timeout_tick;
+            k_usage.ru_utime.tv_sec = total_tick / RT_TICK_PER_SECOND;
+            k_usage.ru_utime.tv_usec = (total_tick % RT_TICK_PER_SECOND) * (1000000 / RT_TICK_PER_SECOND);
+        }
+        break;
+        
+    default:
+        return -EINVAL;
+    }
+    
+    /* Copy data to user space */
+    lwp_put_to_user(usage, &k_usage, sizeof(struct rusage));
+    
+    // printf("sys_getrusage: who = %d, usage = %p\n", who, usage);
+
+    return 0;
+}

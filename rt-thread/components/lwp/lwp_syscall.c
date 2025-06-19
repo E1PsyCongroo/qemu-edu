@@ -212,7 +212,10 @@ const static struct rt_syscall_def func_table[] = {
     [115]=SYSCALL_SIGN(sys_clock_nanosleep),
     [199]=SYSCALL_SIGN(sys_socketpair),
     [157]=SYSCALL_SIGN(sys_setsid),
-    // [78]=SYSCALL_SIGN(sys_readlinkat)
+    // [78]=SYSCALL_SIGN(sys_readlinkat),
+    [165]=SYSCALL_SIGN(sys_getrusage),
+    [72]=SYSCALL_SIGN(sys_pselect6),
+    [166]=SYSCALL_SIGN(sys_umask),
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)

@@ -177,6 +177,9 @@ struct rt_lwp
     /* POSIX signal */
     struct lwp_signal signal;
 
+    // hewo added
+    mode_t umask;
+
     struct lwp_avl_struct *object_root;
     struct rt_mutex object_mutex;
     struct rt_user_context user_ctx;
