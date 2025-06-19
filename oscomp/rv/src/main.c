@@ -12,9 +12,9 @@ int main() {
     
     test_start_musl();
     test_musl_lua();
-    // test_musl_basic();
-    // test_musl_busybox();
-    // test_musl_libc();
+    test_musl_basic();
+    test_musl_busybox();
+    test_musl_libc();
     
     return 0;
 }
