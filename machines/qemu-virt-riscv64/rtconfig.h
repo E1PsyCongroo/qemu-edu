@@ -162,7 +162,7 @@
 #define RT_USING_DFS
 #define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
-#define DFS_FD_MAX 32
+#define DFS_FD_MAX 128
 #define RT_USING_DFS_V2
 #define RT_USING_DFS_ELMFAT
 
@@ -459,7 +459,7 @@
 /* end of Micrium: Micrium software products porting for RT-Thread */
 #define PKG_USING_LWEXT4
 #define RT_USING_DFS_LWEXT4
-#define PKG_USING_LWEXT4_LATEST_VERSION
+#define PKG_USING_LWEXT4_V200
 /* end of system packages */
 
 /* peripheral libraries and drivers */
