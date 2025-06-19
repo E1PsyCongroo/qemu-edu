@@ -74,6 +74,7 @@ sysret_t sys_setpriority(int which, id_t who, int prio);
 sysret_t syscall_clone(unsigned long flags, void *user_stack, int *new_tid, void *tls, int *clear_tid);
 sysret_t sys_wait4(pid_t pid, int *status, int options, struct rusage *ru);
 sysret_t sys_gettid(void);
+sysret_t sys_umask(mode_t mask);
 
 /* filesystem */
 ssize_t  sys_read(int fd, void *buf, size_t nbyte);
@@ -109,6 +110,7 @@ sysret_t sys_ftruncate(int fd, size_t length);
 sysret_t sys_fsync(int fd);
 sysret_t sys_sync();
 ssize_t sys_readlinkat(int dirfd, char *path, char *buf, size_t bufsz);
+sysret_t sys_pselect6(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, const struct timespec *timeout_ts, const sigset_t *sigmask);
 
 /* mm */
 rt_base_t sys_brk(void *addr);
@@ -137,6 +139,7 @@ sysret_t sys_getegid(void);
 sysret_t sys_get_robust_list(int tid, struct robust_list_head **head_ptr, size_t *len_ptr);
 sysret_t sys_set_robust_list(struct robust_list_head *head, size_t len);
 sysret_t sys_membarrier(int cmd, unsigned int flags, int cpu_id);
+sysret_t sys_getrusage(int who, struct rusage *usage);
 
 /* snyc */
 rt_sem_t   sys_sem_create(const char *name, rt_uint32_t value, rt_uint8_t flag);
