@@ -70,3 +70,6 @@ toolchains/qemu-virt-riscv64/riscv64gc-linux-musleabi_for_x86_64-pc-linux-gnu_la
 
 compile_commands.json
 .gdb_history
+
+kernel-rv
+disk.img
