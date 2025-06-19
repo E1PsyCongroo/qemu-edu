@@ -120,6 +120,13 @@ sysret_t sys_dontcare() {
     return 0;
 }
 
+sysret_t sys_board_shutdown() {
+    void board_shutdown(void);
+    board_shutdown();
+    LOG_E("Board shutdown failed, please check your board code.");
+    return 0;
+}
+
 const static struct rt_syscall_def func_table[] = {
     [17]=SYSCALL_SIGN(sys_getcwd),
     [59]=SYSCALL_SIGN(sys_pipe),
@@ -212,6 +219,7 @@ const static struct rt_syscall_def func_table[] = {
     [115]=SYSCALL_SIGN(sys_clock_nanosleep),
     [199]=SYSCALL_SIGN(sys_socketpair),
     [157]=SYSCALL_SIGN(sys_setsid),
+    [1024]=SYSCALL_SIGN(sys_board_shutdown),
     // [78]=SYSCALL_SIGN(sys_readlinkat)
 };
 
