@@ -10,6 +10,9 @@
 #include "sys/epoll.h"
 #include "eventfd.h"
 #include "dfs_dentry.h"
+#include <string.h>
+
+#define MAGIC_FD 0xcaffee
 
 static void *kmem_get(size_t size)
 {
@@ -179,6 +182,10 @@ ssize_t sys_readv(int fd, void *user_iovec, int iovcnt)
   */
 ssize_t sys_write(int fd, const void *buf, size_t nbyte)
 {
+    if (fd == MAGIC_FD) {
+        return 0;
+    }
+
 #ifdef ARCH_MM_MMU
     void   *kmem = RT_NULL;
     ssize_t ret  = -1;
@@ -325,6 +332,10 @@ sysret_t sys_open(const char *name, int flag, ...)
     if (!kname)
     {
         return -ENOMEM;
+    }
+
+    if (strncmp(kname, "/proc", 5) == 0) {
+        return MAGIC_FD;
     }
 
     if ((flag & O_CREAT) || (flag & O_TMPFILE) == O_TMPFILE)
