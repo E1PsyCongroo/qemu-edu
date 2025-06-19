@@ -262,3 +262,7 @@ void rt_hw_console_output(const char *str)
         sbi_console_putchar(*str++);
     }
 }
+
+void board_shutdown(void) {
+    sbi_call(0x8, 0, 0, 0, 0, 0, 0); // SBI_SHUTDOWN
+}
