@@ -7,6 +7,8 @@ tar jxvf /root/toolchains/qemu-virt-riscv64/riscv64gc-linux-musleabi_for_x86_64-
 bash ./toolchains/install_ubuntu.sh --gitee
 source ~/.env/env.sh
 
+export PATH=/opt/riscv64gc-linux-musleabi/bin:$PATH
+
 cd ./machines/qemu-virt-riscv64
 pkgs --update
 scons -j$(nproc)
