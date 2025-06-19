@@ -672,7 +672,8 @@ static int elf_load_segment(elf_load_info_t *load_info)
     }
     else
     {
-        load_info->e_entry = load_info->exec_info.ehdr.e_entry;
+        load_info->e_entry = load_info->exec_info.ehdr.e_entry + app_load_base;
+        // LOG_W("entry=%p, base=%p", load_info->e_entry, app_load_base);
     }
 
     load_info->lwp->text_entry = (void *)load_info->e_entry;
