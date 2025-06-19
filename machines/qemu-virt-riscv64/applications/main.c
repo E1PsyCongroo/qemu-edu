@@ -38,7 +38,7 @@ int main(void)
     // dfs_file_symlink("/musl/busybox", "/bin/sh");
 
     char name[] = "/block/test-all";
-    msh_exec(name, strlen(name));
+    // msh_exec(name, strlen(name));
 
     return 0;
 }
