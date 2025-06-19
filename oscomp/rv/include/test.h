@@ -9,5 +9,6 @@ void test_musl_basic();
 void test_musl_busybox();
 void test_musl_libc();
 void test_musl_lua();
+void test_musl_iozone();
 
 #endif

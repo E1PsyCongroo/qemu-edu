@@ -39,10 +39,13 @@ static const char *tests[] = {
 };
 
 void test_musl_basic() {
-    // chdir("/musl/basic");
+    chdir("/musl/basic");
+    puts("#### OS COMP TEST GROUP START basic-musl ####");
     char buffer[256];
     for (int i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
         snprintf(buffer, sizeof(buffer), "/musl/basic/%s", tests[i]);
         run_test((char *const[]){buffer, NULL});
     }
+    puts("#### OS COMP TEST GROUP END basic-musl ####");
+    chdir("/musl");
 }

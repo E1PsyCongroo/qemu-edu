@@ -15,7 +15,7 @@ static const char *tests[] = {
 };
 
 void test_musl_lua() {
-    puts("#### OS COMP TEST GROUP START libctest-lua ####");
+    puts("#### OS COMP TEST GROUP START lua-musl ####");
     for (int i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
         int r = run_test((char *const[]){"/musl/lua", tests[i], NULL});
         if (r == 0) {

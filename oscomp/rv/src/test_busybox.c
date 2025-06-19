@@ -61,7 +61,7 @@ static const char *tests[] = {
 };
 
 void test_musl_busybox() {
-    puts("#### OS COMP TEST GROUP START busybox ####");
+    puts("#### OS COMP TEST GROUP START busybox-musl ####");
     for (int i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
         char command[256];
         snprintf(command, sizeof(command), "eval \"/musl/busybox %s\"", tests[i]);
@@ -75,11 +75,5 @@ void test_musl_busybox() {
             printf("testcase busybox %s fail\n", tests[i]);
         }
     }
-    // int result = run_test((char *const[]){"/musl/busybox", "sh", "-c", "eval \"/musl/busybox ash -c exit\"", NULL});
-    // if (result == 0) {
-    //     puts("testcase busybox echo a success");
-    // } else {
-    //     puts("testcase busybox echo a fail");
-    // }
-    puts("#### OS COMP TEST GROUP END busybox ####");
+    puts("#### OS COMP TEST GROUP END busybox-musl ####");
 }
