@@ -1,4 +1,4 @@
-CROSS_COMPILE = riscv64-unknown-linux-musl-
+CROSS_COMPILE = riscv64-linux-musl-
 CC = $(CROSS_COMPILE)gcc
 
 INC += ./include
@@ -18,7 +18,7 @@ all: $(DISKIMG)
 
 $(TARGET): $(SRC)
 	mkdir -p $(FSDIR)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC) $(LDFLAGS)
 
 $(DISKIMG): $(TARGET)
 	dd if=/dev/zero of=$(DISKIMG) bs=1M count=256
