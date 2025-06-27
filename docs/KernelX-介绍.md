@@ -18,6 +18,12 @@ RT-Thread(Real Time-Thread), 是一款广泛运用于嵌入式的实时多线程
 
 ## 我们的工作
 
+1. 修复RT-Thread中的一些函数实现问题，如`openat`函数。
+
+2. 将RT-Thread中LWP实现的系统调用修改为符合POSIX标准的。虽然RT-Thread已经实现了一些系统调用，但是他们并不符合POSIX标准。例如`clone`函数的实现，RT-Thread的原有实现将`clone`和`fork`的实现分开，`clone`只负责产生线程，`fork`负责产生进程，同时，`clone`使用一个`void *`来传递六个参数，而Linux则是直接使用寄存器传递六个参数，我们按照原有的逻辑，重写了`clone`系统调用，合并了`clone`和`fork`，并将传参方式改为了直接参数传递。这样的系统调用还有很多,例如`brk`的系统逻辑。系统调用号也需要进行修改。
+
+3. 增加系统调用。RT-Thread虽然提供了一些系统调用的实现，但是这些系统调用并不足以支持测例的运行。我们通过运用RT-Thread提供的运行时环境，增加一些系统调用，例如`fstatat`、`mprotect`、`fsync`、`readv`、`writev`、`shmget`、`shmat`、`shmctl`。
+
 可以QA方式扯
 
 ## 文档列表
