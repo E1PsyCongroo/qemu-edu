@@ -10,8 +10,61 @@ DFS (Device File System) 是我们的 设备虚拟文件系统，官方提供了
 
 ### 架构
 
-// TODO 画图
+![DFS 架构](../img/dfs架构.png)
 
-POSIX 接口层 虚拟文件系统层 设备抽象层
+### 核心结构
 
+这里列举一些核心结构方便理解
 
+文件操作结构
+
+```c
+struct dfs_file_ops
+{
+    int (*open)     (struct dfs_file *fd);
+    int (*close)    (struct dfs_file *fd);
+    int (*ioctl)    (struct dfs_file *fd, int cmd, void *args);
+    ssize_t (*read)     (struct dfs_file *fd, void *buf, size_t count);
+    ssize_t (*write)    (struct dfs_file *fd, const void *buf, size_t count);
+    int (*flush)    (struct dfs_file *fd);
+    off_t (*lseek)    (struct dfs_file *fd, off_t offset);
+    int (*getdents) (struct dfs_file *fd, struct dirent *dirp, uint32_t count);
+
+    int (*poll)     (struct dfs_file *fd, struct rt_pollreq *req);
+};
+```
+
+虚拟节点
+
+```c
+struct dfs_vnode
+{
+    uint16_t type;               /* Type (regular or socket) */
+
+    char *path;                  /* Name (below mount point) */
+    char *fullpath;              /* Full path is hash key */
+    int ref_count;               /* Descriptor reference count */
+    rt_list_t list;              /* The node of vnode hash table */
+
+    struct dfs_filesystem *fs;
+    const struct dfs_file_ops *fops;
+    uint32_t flags;              /* self flags, is dir etc.. */
+
+    size_t   size;               /* Size in bytes */
+    void *data;                  /* Specific file system data */
+};
+```
+
+文件描述符
+
+```c
+struct dfs_file
+{
+    uint16_t magic;              /* file descriptor magic number */
+    uint32_t flags;              /* Descriptor flags */
+    int ref_count;               /* Descriptor reference count */
+    off_t    pos;                /* Current file position */
+    struct dfs_vnode *vnode;     /* file node struct */
+    void *data;                  /* Specific fd data */
+};
+```

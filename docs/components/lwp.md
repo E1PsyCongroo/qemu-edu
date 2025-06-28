@@ -2,11 +2,53 @@
 
 lwp 是我们的轻量级进程管理系统, 它作为 RT-Thread 的一个核心组件,为 我们的系统提供了用户态的进程支持,同时提供进程间通信,资源隔离,系统调用等功能。
 
+```mermaid
+sequenceDiagram
+    participant 用户应用
+    participant RT-Thread内核
+    participant lwp核心
+    participant lwp_pid
+    participant lwp_elf
+    participant lwp_mm
+    
+    用户应用->>RT-Thread内核: 创建进程请求
+    RT-Thread内核->>lwp核心: exec/lwp_execve()
+    lwp核心->>lwp_pid: lwp_create()/lwp_pid_get()
+    lwp_pid-->>lwp核心: 返回进程ID
+    
+    lwp核心->>lwp_mm: lwp_user_space_init()
+    lwp_mm-->>lwp核心: 初始化进程地址空间
+    
+    lwp核心->>lwp_elf: lwp_load()
+    lwp_elf-->>lwp核心: 加载ELF可执行文件
+    
+    lwp核心->>RT-Thread内核: 创建进程主线程
+    RT-Thread内核->>lwp核心: 线程创建完成
+    
+    lwp核心->>RT-Thread内核: rt_thread_startup()
+    RT-Thread内核-->>lwp核心: 线程启动成功
+    
+    lwp核心-->>用户应用: 返回进程ID
+    
+    Note over 用户应用,lwp_mm: 进程运行
+    
+    用户应用->>RT-Thread内核: 系统调用请求
+    RT-Thread内核->>lwp核心: 进入系统调用处理
+    lwp核心-->>用户应用: 返回系统调用结果
+    
+    用户应用->>RT-Thread内核: 进程退出请求
+    RT-Thread内核->>lwp核心: lwp_terminate()
+    lwp核心->>lwp_pid: lwp_pid_put()
+    lwp_pid-->>lwp核心: 释放进程ID
+    
+    lwp核心->>lwp_mm: lwp_unmap_user_space()
+    lwp_mm-->>lwp核心: 释放进程地址空间
+    
+    lwp核心-->>RT-Thread内核: 进程退出完成
+    RT-Thread内核-->>用户应用: 进程终止
+```
+
 lwp 主要由下面几个部分组成：
-
-// TODO 我回头打算画个图
-
-lwp_create 创建 进程结构 -> lwp_load 加载 elf -> lwp_thread_create 线程初始化 -> rt_thread_startup
 
 ### lwp 核心结构体
 
