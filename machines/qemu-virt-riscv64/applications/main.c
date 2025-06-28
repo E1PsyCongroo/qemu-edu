@@ -33,9 +33,9 @@ int main(void)
     dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-linux-riscv64-lp64d.so.1");
     dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-musl-riscv64-sf.so.1");
 
-    // mkdir("/bin", 0777);
-    // dfs_file_symlink("/musl/busybox", "/bin/busybox");
-    // dfs_file_symlink("/musl/busybox", "/bin/sh");
+    mkdir("/bin", 0777);
+    dfs_file_symlink("/musl/busybox", "/bin/busybox");
+    dfs_file_symlink("/musl/busybox", "/bin/sh");
 
     char name[] = "/block/test-all";
     // msh_exec(name, strlen(name));
