@@ -1,74 +1,272 @@
-# RT-Thread 教育支持
+# 高清的 KernelX
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![RT-Thread](https://img.shields.io/badge/RT--Thread-OS-orange.svg)](https://www.rt-thread.org/)
+## 简介
 
-本仓库旨在为学校提供基于RT-Thread操作系统的教学资源，包括**移植案例**、**实践教程**、**课程设计题目**以及**竞赛/毕业设计方向**。通过QEMU模拟器和真实硬件结合，帮助学习者快速掌握嵌入式系统、操作系统的开发技能。
+KernelX 是一个基于 RT-Thread(smart) 的，使用 c 开发的微内核操作系统。
 
-## 目录结构
+参赛队员为：张逸轩 刘镇睿 丁宏阳
+
+## 架构
+
+![KernelX 架构](docs/img/KernelX架构.png)
+
+## 关于 RT-Thread
+
+RT-Thread(Real Time-Thread), 是一款广泛运用于嵌入式的实时多线程操作系统。RT-Thread 主要使用 C 语言编写，参考了面向对象设计的设计范式。同时，RT-Thread 采取的是微内核架构，具有一个极简的内核以及丰富的拓展、组件，同时支持在线软件包管理，提供更加丰富的功能和强大的裁剪能力以适应不同的设备。
+
+## 我们的工作
+
+### 修复RT-Thread原有函数实现问题
+
+修复RT-Thread中的一些函数实现问题，例如dfs模块下的`openat`函数，在得到了`dirfd`的绝对路径之后，会直接打开`dirfd`的目录，不拼接相对路径，导致了运行出错。
+
+原有代码（位于components/dfs/src/dfs_posix.c）：
+
+```c
+int openat(int dirfd, const char *path, int flag, ...)
+{
+    struct dfs_file *d;
+    char *fullpath;
+    int fd;
+
+    if (!path)
+    {
+        rt_set_errno(-EBADF);
+        return -1;
+    }
+
+    fullpath = (char*)path;
+
+    if (path[0] != '/')
+    {
+        if (dirfd != AT_FDCWD)
+        {
+            d = fd_get(dirfd);
+            if (!d || !d->vnode)
+            {
+                rt_set_errno(-EBADF);
+                return -1;
+            }
+
+            fullpath = dfs_dentry_full_path(d->dentry);
+            if (!fullpath)
+            {
+                rt_set_errno(-ENOMEM);
+                return -1;
+            }
+        }
+    }
+
+    fd = open(fullpath, flag, 0);
+
+    if (fullpath != path)
+    {
+        rt_free(fullpath);
+    }
+
+    return fd;
+}
+```
+
+我们的修改：
+
+```c
+if (path[0] != '/') {
+    if (dirfd != AT_FDCWD)
+    {
+        d = fd_get(dirfd);
+        if (!d || !d->vnode)
+        {
+            rt_set_errno(-EBADF);
+            return -1;
+        }
+            
+        char *dirpath = dfs_dentry_full_path(d->dentry);
+        size_t dirpath_len = strlen(dirpath);
+        size_t path_len = strlen(path);
+        fullpath = (char *)rt_malloc(dirpath_len + 1 + path_len + 1);
+        rt_strcpy(fullpath, dirpath);
+        fullpath[dirpath_len] = '/';
+        rt_strcpy(fullpath + dirpath_len + 1, path);
+        fullpath[dirpath_len + 1 + path_len] = '\0';
+        rt_free(dirpath);
+            
+        // fullpath = dfs_dentry_full_path(d->dentry);
+        if (!fullpath)
+        {
+            rt_set_errno(-ENOMEM);
+            return -1;
+        }
+    }
+}
+
+```
+
+对于我们发现的这类问题，我们计划在进一步测试之后，向RT-Thread项目提交PR。
+
+### 修改系统调用格式和Linux一致
+
+将RT-Thread中LWP实现的系统调用修改为和Linux一致。虽然RT-Thread已经实现了一些系统调用，但是他们的参数传递方式和Linux有出入。例如`clone`函数的实现，RT-Thread的原有实现将`clone`和`fork`的实现分开，`clone`只负责产生线程，`fork`负责产生进程，同时，`clone`使用一个`void *`来传递六个参数，而Linux则是直接使用寄存器传递六个参数，我们按照原有的逻辑，重写了`clone`系统调用，合并了`clone`和`fork`，并将传参方式改为了直接参数传递。这样的系统调用还有很多,例如`brk`的系统逻辑。系统调用号也需要进行修改。
+
+原有的`clone`和`fork`函数声明：
+
+```c
+long _sys_clone(void *arg[]);
+sysret_t sys_fork(void);
+```
+
+修改之后和Linux一致：
+
+```c
+sysret_t syscall_clone(unsigned long flags, void *user_stack, int *new_tid, void *tls, int *clear_tid);
+```
+
+RT-Thread原有的`brk`逻辑会自动将堆顶向上对齐到页边界，并且暴露给用户接口，但是Linux中往往是用户申请堆顶为多少，就把堆顶设置为多少返回给用户，这导致了测试无法通过。我们加入了一个新的变量来记录用户申请到的堆顶，如果几次申请的新堆顶都再一个页内，我们就无需再为这个用户程序的堆分配页。
+
+RT-Thread使用一个函数数组来记录系统调用号和系统调用操作函数的对应关系，但是这个对应关系和Linux的规定有所区别，我们根据具体的架构，修改了系统调用号使之与Linux一致。
+
+### 增加系统调用
+
+RT-Thread虽然提供了一些系统调用的实现，但是这些系统调用并不足以支持测例的运行。我们通过运用RT-Thread提供的运行时环境，增加一些系统调用，例如：
+
+- `fnctl`
+
+- `writev`
+
+- `sendfile`
+
+- `fstatat`
+
+- `readv`
+
+- `get_euid`
+
+- `times`
+
+- `mprotect`
+
+- `membarrier`
+
+- `sync`
+
+- `fsnyc`
+
+- `readlinkat`
+
+- `getrusage`
+
+- `umask`
+
+等等，同时我们优化了代码结构，提升了代码的可读性。
+
+详细的文档请阅读 qemu-edu/docs 下的文档
+
+## 快速启动
+
+如果在非评测机下的linux环境，我们提供了 docker 环境。
+
+我们提供了一个 python 脚本用来快速构建、启动镜像。
+
+```bash
+python3 run.py # 这一步会自动检索工具链并且安装，自动生成 docker 镜像并且启动，进入。
+
+# 现在我们的目录是 /code
+
+cd ./oscomp/rv
+make all # 编译测试环境
+
+cd /code/machines/qemu-virt-riscv64
+pkgs --update
+scons -c
+scons -j12 # 编译系统
+
+./run.sh ../../testsuits-for-oskernel/releases/sdcard-rv.img # 启动系统
+
+```
+
+### 在评测机环境
+
+首先我们需要下载必要的工具，包括scons构建工具和一些python3必要的库
+
+```bash
+apt-get -y update
+apt-get -y install scons python3-kconfiglib python3-tqdm python3-requests python3-yaml
+```
+
+然后下载gcc交叉编译工具链并安装opt目录下，同时设置环境变量
+
+```bash
+wget --no-check-certificate https://download.rt-thread.org/download/rt-smart/toolchains/riscv64gc-linux-musleabi_for_x86_64-pc-linux-gnu_latest.tar.bz2
+tar jxvf /root/toolchains/qemu-virt-riscv64/riscv64gc-linux-musleabi_for_x86_64-pc-linux-gnu_latest.tar.bz2 -C /opt
+
+bash ./toolchains/install_ubuntu.sh --gitee
+source ~/.env/env.sh
+
+export PATH=/opt/riscv64gc-linux-musleabi/bin:$PATH
+```
+
+到指定目录下构建
+
+```bash
+cd ./machines/qemu-virt-riscv64
+pkgs --update
+scons -j$(nproc)
+```
+
+同时，我们需要一个存放自己测试脚本的磁盘，在启动的时候OS会自动挂载
+
+```bash
+cd ./oscomp/rv
+make all
+```
+
+磁盘位于./oscomp/rv/build/disk.img。
+
+详细的环境逻辑请参考文档：[KernelX-环境](./KernelX-环境.md)
+
+## 项目结构
 
 ```
 .
-├── machines      # 支持的板卡移植
-├── tutorials     # 教程文档
-└── ...
+├── compile_commands.json
+├── Containerfile // Docker 生成配置
+├── docs // 文档
+│   ├── components
+│   ├── img
+│   ├── KernelX-环境.md
+│   ├── KernelX-介绍.md
+│   └── RT-Thread-介绍.md
+├── gen_bear.sh // 用于 bear 生成 compile_commands 的脚本
+├── LICENSE
+├── machines // 板级支持
+│   ├── qemu-loongarch
+│   ├── qemu-virt-riscv64
+├── Makefile // makefile, 用于测试
+├── oscomp // 测试目录，用来生成供测试的文件
+├── README.md
+├── rt-thread // RT-Thread 目录，也是我们OS的主目录
+│   ├── bsp //同样是板级支持
+│   ├── ChangeLog.md
+│   ├── components // 组件目录，下面包括多种组件
+│   ├── examples
+│   ├── include
+│   ├── Kconfig
+│   ├── libcpu // 提供不同架构的支持
+│   ├── LICENSE
+│   ├── README_de.md
+│   ├── README_es.md
+│   ├── README.md
+│   ├── README_zh.md
+│   ├── src // 源代码，也就是内核代码
+│   └── tools
+├── run.py // 我们的用于在普通 linux 环境下启动环境的脚本
+├── testsuits-for-oskernel // 官方测试的克隆，同时修改了 Makefile 以提升编译效率
+└── toolchains // 我们需要的工具链，一般是在 run.py 里面下载
+    ├── install_ubuntu.sh
+    ├── qemu-longarch
+    └── qemu-virt-riscv64
 ```
 
-## 板卡支持计划
+## 开源引用声明
 
-### QEMU模拟器支持
-| 架构            | 基础功能支持                  | 网络支持  | 文件系统  |
-|-----------------|-----------------------------|----------|----------|
-| qemu-vexpress-a9     | 32位arm cortex-a9支持/设备驱动框架         | ✔️        | ✔️        |
-| qemu-virt-riscv64    | 64位risc-v内核及命令行       | ✔️        | ✔️        |
-| qemu-virt-aarch64    | 64位arm cortex-a53内核及命令行         | ✔️        | ✔️        |
-| qemu-loongarch  | 龙芯64位指令集/基础外设          | 开发中    | 开发中    |
-
-### 真实硬件支持介绍
-
-#### STM32F407 星火①号开发板
-
-前向深度嵌入式的arm cortex-m4，stm32f407-rt-spark开发板。
-
-#### K230 RISCV64 AI开发板
-
-包含riscv v指令集1.0的riscv AI开发板。
-
-## 使用说明
-
-```bash
-# 以virt-riscv64为例
-# 获取仓库及rt-thread代码
-$ git clone https://github.com/rt-thread/qemu-edu.git
-$ cd qemu-edu
-$ git submodule update --init --recursive
-
-$ cd machines/qemu-virt-riscv64
-$ scons                 # 编译
-$ ./qemu-nographic.sh   # 执行
-```
-
-## 教学资源
-
-- 教程文档
-- 课题方向
-- 比赛题目
-
-## 贡献指南
-
-欢迎高校师生和开发者参与建设：
-1. 完善文档时请使用Markdown格式并附示意图
-2. 提交Pull Request前需通过基础功能测试
-
-## License
-
-本项目采用与RT-Thread一致的Apache License 2.0：
-
-```text
-Copyright (c) 2025 RT-Thread Team
-Licensed under the Apache License, Version 2.0
-```
-
-## 联系我们
-- 社区论坛: https://club.rt-thread.org
-- GitHub Issues: 提交技术问题
+KernelX 是在 RT-Thread 的基础上进行开发的，项目路径： [RT-Thread](https://github.com/oscomp/RT-Thread/)

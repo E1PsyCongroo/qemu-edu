@@ -4,13 +4,11 @@
 
 KernelX 是一个基于 RT-Thread(smart) 的，使用 c 开发的微内核操作系统。
 
-参赛队员为：
+参赛队员为：张逸轩 刘镇睿 丁宏阳
 
 ## 架构
 
-
-
-RTT https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/README
+![KernelX 架构](./img/KernelX架构.png)
 
 ## 关于 RT-Thread
 
