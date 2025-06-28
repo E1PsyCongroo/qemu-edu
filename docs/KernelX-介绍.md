@@ -169,8 +169,24 @@ RT-Thread虽然提供了一些系统调用的实现，但是这些系统调用�
 
 如果在非评测机下的linux环境，我们提供了 docker 环境。
 
-...
-// 我写
+我们提供了一个 python 脚本用来快速构建、启动镜像。
+
+```bash
+python3 run.py # 这一步会自动检索工具链并且安装，自动生成 docker 镜像并且启动，进入。
+
+# 现在我们的目录是 /code
+
+cd ./oscomp/rv
+make all # 编译测试环境
+
+cd /code/machines/qemu-virt-riscv64
+pkgs --update
+scons -c
+scons -j12 # 编译系统
+
+./run.sh ../../testsuits-for-oskernel/releases/sdcard-rv.img # 启动系统
+
+```
 
 ### 在评测机环境
 
@@ -210,7 +226,7 @@ make all
 
 磁盘位于./oscomp/rv/build/disk.img。
 
-详细的环境逻辑请参考文档：
+详细的环境逻辑请参考文档：[KernelX-环境](./KernelX-环境.md)
 
 ## 项目结构
 
