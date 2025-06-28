@@ -8,7 +8,7 @@ KernelX 是一个基于 RT-Thread(smart) 的，使用 c 开发的微内核操作
 
 ## 架构
 
-来张图
+
 
 RTT https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/README
 
@@ -272,3 +272,5 @@ make all
 ```
 
 ## 开源引用声明
+
+KernelX 是在 RT-Thread 的基础上进行开发的，项目路径： [RT-Thread](https://github.com/oscomp/RT-Thread/)

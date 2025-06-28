@@ -14,9 +14,16 @@ RT-Thread 官方提供的架构图如下:
 
 作为一个微内核操作系统, RT-Thread 提供了许多组件(Components),我们对其中一些组件进行了改进、修复和优化。下面是主要的组件和他们对应的文档：
 
-// TODO　写完　components 记得回来补上链接
-
 - [lwp](./components/lwp.md): 轻量级进程管理系统
-
+- [dfs](./components/dfs.md): 设备虚拟文件系统
+- [drivers](./components/drivers.md): 驱动组件
+- [fal](./components/fal.md): Flash 设备组件
+- [finsh](./components/finsh.md): Fin Shell
+- [libc](./components/libc.md): c 标准库
+- [mm](./components/mm.md): 用户程序内存管理组件
+- [mprotect](./components/mprotect.md): 内存保护组件
+- [net](./components/net.md): 网络支持组件
+- [utilities.md](./components/utilities.md): 工具组件
+- [legacy](./components/legacy.md): 向后兼容层
 
 
