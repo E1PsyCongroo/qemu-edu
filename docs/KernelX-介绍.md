@@ -230,4 +230,45 @@ make all
 
 ## 项目结构
 
+```
+.
+├── compile_commands.json
+├── Containerfile // Docker 生成配置
+├── docs // 文档
+│   ├── components
+│   ├── img
+│   ├── KernelX-环境.md
+│   ├── KernelX-介绍.md
+│   └── RT-Thread-介绍.md
+├── gen_bear.sh // 用于 bear 生成 compile_commands 的脚本
+├── LICENSE
+├── machines // 板级支持
+│   ├── qemu-loongarch
+│   ├── qemu-virt-riscv64
+├── Makefile // makefile, 用于测试
+├── oscomp // 测试目录，用来生成供测试的文件
+├── README.md
+├── rt-thread // RT-Thread 目录，也是我们OS的主目录
+│   ├── bsp //同样是板级支持
+│   ├── ChangeLog.md
+│   ├── components // 组件目录，下面包括多种组件
+│   ├── examples
+│   ├── include
+│   ├── Kconfig
+│   ├── libcpu // 提供不同架构的支持
+│   ├── LICENSE
+│   ├── README_de.md
+│   ├── README_es.md
+│   ├── README.md
+│   ├── README_zh.md
+│   ├── src // 源代码，也就是内核代码
+│   └── tools
+├── run.py // 我们的用于在普通 linux 环境下启动环境的脚本
+├── testsuits-for-oskernel // 官方测试的克隆，同时修改了 Makefile 以提升编译效率
+└── toolchains // 我们需要的工具链，一般是在 run.py 里面下载
+    ├── install_ubuntu.sh
+    ├── qemu-longarch
+    └── qemu-virt-riscv64
+```
+
 ## 开源引用声明
