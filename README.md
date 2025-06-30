@@ -8,7 +8,7 @@ KernelX 是一个基于 RT-Thread Smart 的，使用 c 开发的微内核操作�
 
 由于 Gitlab 仓库大小限制，我们将带有提交记录的仓库上传至 GitHub: [KernelX](https://github.com/E1PsyCongroo/qemu-edu)
 
-同时，我们给出了对应的 [PPT]() 和 [视频]()。
+同时，我们给出了对应的 PPT 和 视频：[网盘链接](https://pan.baidu.com/s/1dlGYOMXAQnt5syfzeGS44w?pwd=xtqa)
 
 ## 架构
 
