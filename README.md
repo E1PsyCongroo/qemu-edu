@@ -90,7 +90,7 @@ int openat(int dirfd, const char *path, int flag, ...)
 ```c
 if (path[0] != '/') {
     if (dirfd != AT_FDCWD)
-    {
+    {![alt text](image.png)
         d = fd_get(dirfd);
         if (!d || !d->vnode)
         {
@@ -239,7 +239,7 @@ make all
 
 磁盘位于./oscomp/rv/build/disk.img。
 
-详细的环境逻辑请参考文档：[KernelX-环境](./KernelX-环境.md)
+详细的环境逻辑请参考文档：[KernelX-环境](./docs/KernelX-环境)
 
 ## 项目结构
 
