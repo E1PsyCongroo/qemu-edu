@@ -2,9 +2,13 @@
 
 ## 简介
 
-KernelX 是一个基于 RT-Thread(smart) 的，使用 c 开发的微内核操作系统。
+KernelX 是一个基于 RT-Thread Smart 的，使用 c 开发的微内核操作系统。
 
-参赛队员为：张逸轩 刘镇睿 丁宏阳
+参赛队员为来自杭州电子科技大学的 张逸轩 刘镇睿 丁宏阳
+
+由于 Gitlab 仓库大小限制，我们将带有提交记录的仓库上传至 GitHub: [KernelX](https://github.com/E1PsyCongroo/qemu-edu)
+
+同时，我们给出了对应的 [PPT]() 和 [视频]()。
 
 ## 架构
 
@@ -13,6 +17,19 @@ KernelX 是一个基于 RT-Thread(smart) 的，使用 c 开发的微内核操作
 ## 关于 RT-Thread
 
 RT-Thread(Real Time-Thread), 是一款广泛运用于嵌入式的实时多线程操作系统。RT-Thread 主要使用 C 语言编写，参考了面向对象设计的设计范式。同时，RT-Thread 采取的是微内核架构，具有一个极简的内核以及丰富的拓展、组件，同时支持在线软件包管理，提供更加丰富的功能和强大的裁剪能力以适应不同的设备。
+
+## 设计理念
+
+我们选择以工业界广泛应用的 RT-Thread 作为基础进行拓展和创新，构建了 KernelX 微内核操作系统。我们基于以下理念：首先，我们希望立足于实际的生产，开发一款可以在实际应用场景中部署的操作系统，所以我们选择了在嵌入式领域被诸多使用的 RT-Thread。于此同时，RT-Thread 作为成熟的实时操作系统提供了坚实的微内核架构基础，使我们能够专注于系统功能的完善与优化。我们也希望借此机会深入理解微内核的设计理念和设计哲学。基于种种原因，我们选择 RT-Thread, 并且为他做了修复、优化、功能实现和设计兼容。
+
+## 文档
+
+我们将文档划分为：
+
+[总文档](./docs/KernelX-介绍.md)
+[环境文档](./docs/KernelX-环境.md)
+[RT-Thread文档](./docs/RT-Thread-介绍.md)
+[组件文档](./docs/components/index.md)
 
 ## 我们的工作
 
@@ -231,7 +248,7 @@ make all
 ├── compile_commands.json
 ├── Containerfile // Docker 生成配置
 ├── docs // 文档
-│   ├── components
+│   ├── components // 组件文档目录
 │   ├── img
 │   ├── KernelX-环境.md
 │   ├── KernelX-介绍.md
