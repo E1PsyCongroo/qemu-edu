@@ -12,7 +12,7 @@ KernelX 是一个基于 RT-Thread Smart 的，使用 c 开发的微内核操作�
 
 ## 架构
 
-![KernelX 架构](docs/img/KernelX架构.png)
+![KernelX 架构](img/KernelX架构.png)
 
 ## 关于 RT-Thread
 
@@ -26,10 +26,10 @@ RT-Thread(Real Time-Thread), 是一款广泛运用于嵌入式的实时多线程
 
 我们将文档划分为：
 
-[总文档](./docs/KernelX-介绍.md)
-[环境文档](./docs/KernelX-环境.md)
-[RT-Thread文档](./docs/RT-Thread-介绍.md)
-[组件文档](./docs/components/index.md)
+[总文档](KernelX-介绍.md)
+[环境文档](KernelX-环境.md)
+[RT-Thread文档](RT-Thread-介绍.md)
+[组件文档](components/index.md)
 
 ## 我们的工作
 
@@ -90,7 +90,7 @@ int openat(int dirfd, const char *path, int flag, ...)
 ```c
 if (path[0] != '/') {
     if (dirfd != AT_FDCWD)
-    {![alt text](image.png)
+    {
         d = fd_get(dirfd);
         if (!d || !d->vnode)
         {
@@ -239,7 +239,7 @@ make all
 
 磁盘位于./oscomp/rv/build/disk.img。
 
-详细的环境逻辑请参考文档：[KernelX-环境](./docs/KernelX-环境)
+详细的环境逻辑请参考文档：[KernelX-环境](./KernelX-环境.md)
 
 ## 项目结构
 
