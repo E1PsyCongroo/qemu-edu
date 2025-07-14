@@ -79,8 +79,8 @@ int main(void)
     char name[] = "/block/test-all";
     // msh_exec(name, strlen(name));
 
-    read_proc_interrupts();
-    rt_kprintf("\n");
+    // read_proc_interrupts();
+    // rt_kprintf("\n");
 
     return 0;
 }
