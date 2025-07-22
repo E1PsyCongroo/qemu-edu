@@ -280,6 +280,7 @@ static int dfs_procfs_readlink(struct dfs_dentry *dentry, char *buf, int len)
 
 static int dfs_procfs_unlink(struct dfs_dentry *dentry)
 {
+    rt_kprintf("permission denied!\n");
     PROC_DEBUG(" %s %d >> %s ret: %d\n", __func__, __LINE__, dentry->pathname, -1);
     return -RT_ERROR;
 }
@@ -379,6 +380,14 @@ static int dfs_procfs_free_vnode(struct dfs_vnode *vnode)
     return 0;
 }
 
+static int dfs_procfs_rename(struct dfs_dentry *old_dentry, struct dfs_dentry *new_dentry)
+{
+    rt_kprintf("permission denied!\n");
+    PROC_DEBUG(" %s %d >> %s to %s ret: %d\n", __func__, __LINE__, 
+               old_dentry->pathname, new_dentry->pathname, -EPERM);
+    return -EPERM;
+}
+
 static const struct dfs_file_ops _procfs_fops =
 {
     .open = dfs_procfs_open,
@@ -407,6 +416,7 @@ static const struct dfs_filesystem_ops _procfs_ops =
     .lookup = dfs_procfs_lookup,
     .create_vnode = dfs_procfs_create_vnode,
     .free_vnode = dfs_procfs_free_vnode,
+    .rename = dfs_procfs_rename,
 };
 
 static struct dfs_filesystem_type _procfs =
