@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <ctype.h>
 
 static int mount_procfs(void)
 {
@@ -81,6 +82,29 @@ int main(void)
 
     // read_proc_interrupts();
     // rt_kprintf("\n");
+
+    if(remove("/proc/interrupts") == 0)
+    {
+        rt_kprintf("removed :(\n");
+    }
+
+    if(rename("/proc/interrupts", "/proc/interrupts2") == 0)
+    {
+        rt_kprintf("renamed :(\n");
+    }
+
+    show_file_permissions("/proc/interrupts");
+
+    // check();
+    // rt_kprintf("1\n");
+    // usleep(100000);
+    // check();
+    // rt_kprintf("2\n");
+    // usleep(100000);
+    // check();
+
+    // rt_kprintf("Pass!\n");
+
 
     return 0;
 }
