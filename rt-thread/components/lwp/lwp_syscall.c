@@ -224,6 +224,7 @@ const static struct rt_syscall_def func_table[] = {
     [165]=SYSCALL_SIGN(sys_getrusage),
     [72]=SYSCALL_SIGN(sys_pselect6),
     [166]=SYSCALL_SIGN(sys_umask),
+    [285]=SYSCALL_SIGN(sys_copy_file_range)
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)

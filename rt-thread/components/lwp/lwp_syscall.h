@@ -111,6 +111,7 @@ sysret_t sys_fsync(int fd);
 sysret_t sys_sync();
 ssize_t sys_readlinkat(int dirfd, char *path, char *buf, size_t bufsz);
 sysret_t sys_pselect6(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, const struct timespec *timeout_ts, const sigset_t *sigmask);
+sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_off, size_t count, unsigned int _flags)
 
 /* mm */
 rt_base_t sys_brk(void *addr);

@@ -10,7 +10,10 @@
 #include "sys/epoll.h"
 #include "eventfd.h"
 #include "dfs_dentry.h"
+#include <stddef.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 
 #define MAGIC_FD 0xcaffee
 
@@ -2765,5 +2768,123 @@ quit:
         kmem_put(ksigmask);
     }
     
+    return ret;
+}
+
+sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_off, size_t count, unsigned int _flags)
+{
+    ssize_t ret = 0;
+    ssize_t total_copied = 0;
+    off_t original_in_pos = -1, original_out_pos = -1;
+    off_t in_pos, out_pos;
+    
+    if (count == 0)
+    {
+        return 0;
+    }
+
+    original_in_pos = lseek(in_fd, 0, SEEK_CUR);
+    original_out_pos = lseek(out_fd, 0, SEEK_CUR);
+    if (original_in_pos < 0 || original_out_pos < 0) 
+    {
+        return GET_ERRNO();
+    }
+    
+    in_pos  = original_in_pos;
+    out_pos = original_out_pos;
+    
+    if (in_off != RT_NULL)
+    {
+        if (!lwp_user_accessable(in_off, sizeof(off_t)))
+        {
+            return -EFAULT;
+        }
+        
+        lwp_get_from_user(&in_pos, in_off, sizeof(off_t));
+    }
+
+    if (out_off != RT_NULL)
+    {
+        if (!lwp_user_accessable(out_off, sizeof(off_t)))
+        {
+            return -EFAULT;
+        }
+        
+        lwp_get_from_user(&out_pos, out_off, sizeof(off_t));
+    }
+
+    if (lseek(in_fd, in_pos, SEEK_SET) < 0)
+    {
+        return GET_ERRNO();
+    }
+
+    if (lseek(out_fd, out_pos, SEEK_SET) < 0)
+    {
+        lseek(in_fd, original_in_pos, SEEK_SET);
+        return GET_ERRNO();
+    }
+
+    char buffer[1024];
+    const size_t buffer_size = sizeof(buffer);
+
+    while (total_copied < count)
+    {
+        size_t to_read = count - total_copied;
+        if (to_read > buffer_size)
+        {
+            to_read = buffer_size;
+        }
+
+        ssize_t bytes_read = read(in_fd, buffer, to_read);
+        if (bytes_read < 0)
+        {
+            ret = GET_ERRNO();
+            break;
+        }
+        if (bytes_read == 0)
+        {
+            break;
+        }
+
+        ssize_t bytes_written = write(out_fd, buffer, bytes_read);
+        if (bytes_written < 0)
+        {
+            ret = GET_ERRNO();
+            break;
+        }
+        if (bytes_written != bytes_read)
+        {
+            ret = -EIO;
+            break;
+        }
+
+        total_copied += bytes_written;
+    }
+
+    if (ret >= 0)
+    {
+        if (in_off != RT_NULL)
+        {
+            off_t current_in_pos = lseek(in_fd, 0, SEEK_CUR);
+            if (current_in_pos >= 0)
+            {
+                lwp_put_to_user(in_off, &current_in_pos, sizeof(off_t));
+            }
+            lseek(in_fd, original_in_pos, SEEK_SET);
+        }
+        
+        if (out_off != RT_NULL)
+        {
+            off_t current_out_pos = lseek(out_fd, 0, SEEK_CUR);
+            if (current_out_pos >= 0)
+            {
+                lwp_put_to_user(out_off, &current_out_pos, sizeof(off_t));
+            }
+            lseek(out_fd, original_out_pos, SEEK_SET);
+        }
+        
+        ret = total_copied;
+    }
+
     return ret;
 }
