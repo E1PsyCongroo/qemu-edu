@@ -546,32 +546,32 @@ int dfs_file_open(struct dfs_file *file, const char *path, int oflags, mode_t mo
                     file->flags = oflags;
 
                     /* check permission */
-                    // if (!(oflags & O_CREAT))
-                    // {
-                    //     if (fflags & DFS_F_FWRITE)
-                    //     {
-                    //         if (!(file->vnode->mode & S_IWUSR))
-                    //         {
-                    //             permission = RT_FALSE;
-                    //         }
-                    //     }
+                    if (!(oflags & O_CREAT))
+                    {
+                        if (fflags & DFS_F_FWRITE)
+                        {
+                            if (!(file->vnode->mode & S_IWUSR))
+                            {
+                                permission = RT_FALSE;
+                            }
+                        }
 
-                    //     if (fflags & DFS_F_FREAD)
-                    //     {
-                    //         if (!(file->vnode->mode & S_IRUSR))
-                    //         {
-                    //             permission = RT_FALSE;
-                    //         }
-                    //     }
+                        if (fflags & DFS_F_FREAD)
+                        {
+                            if (!(file->vnode->mode & S_IRUSR))
+                            {
+                                permission = RT_FALSE;
+                            }
+                        }
 
-                    //     if (oflags & O_EXEC)
-                    //     {
-                    //         if (!(file->vnode->mode & S_IXUSR))
-                    //         {
-                    //             permission = RT_FALSE;
-                    //         }
-                    //     }
-                    // }
+                        if (oflags & O_EXEC)
+                        {
+                            if (!(file->vnode->mode & S_IXUSR))
+                            {
+                                permission = RT_FALSE;
+                            }
+                        }
+                    }
 
                     if (permission && file->fops->open)
                     {

@@ -14,6 +14,44 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <ctype.h>
+
+static int mount_procfs(void)
+{
+    int ret;
+
+    mkdir("/proc", 0777);
+    ret = dfs_mount("proc", "/proc", "procfs", 0, NULL);
+    if (ret < 0)
+    {        
+        rt_kprintf("Failed to mount procfs, errno=%d\n", errno);
+        return ret;
+    }
+
+    rt_kprintf("procfs mounted at /proc\n");
+
+}
+
+static void read_proc_interrupts(void)
+{
+    struct dfs_file file;
+    char buffer[256];
+    int fd = open("/proc/interrupts", O_RDONLY, 0);
+    
+    if (fd < 0)
+    {
+        rt_kprintf("Failed to open /proc/interrupts, errno=%d\n", errno);
+        return;
+    }
+
+    while (read(fd, buffer, sizeof(buffer) - 1) > 0)
+    {
+        buffer[sizeof(buffer) - 1] = '\0'; // Null-terminate the string
+        rt_kprintf("%s", buffer);
+    }
+
+    close(fd);
+}
 
 int main(void)
 {
@@ -28,6 +66,8 @@ int main(void)
         rt_kprintf("Failed to mount filesystem\n");
         return -1;
     }
+
+    mount_procfs();
     
     mkdir("/lib", 0777);
     dfs_file_symlink("/musl/lib/libc.so", "/lib/ld-linux-riscv64-lp64d.so.1");
@@ -39,6 +79,32 @@ int main(void)
 
     char name[] = "/block/test-all";
     // msh_exec(name, strlen(name));
+
+    // read_proc_interrupts();
+    // rt_kprintf("\n");
+
+    if(remove("/proc/interrupts") == 0)
+    {
+        rt_kprintf("removed :(\n");
+    }
+
+    if(rename("/proc/interrupts", "/proc/interrupts2") == 0)
+    {
+        rt_kprintf("renamed :(\n");
+    }
+
+    show_file_permissions("/proc/interrupts");
+
+    // check();
+    // rt_kprintf("1\n");
+    // usleep(100000);
+    // check();
+    // rt_kprintf("2\n");
+    // usleep(100000);
+    // check();
+
+    // rt_kprintf("Pass!\n");
+
 
     return 0;
 }

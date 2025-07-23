@@ -80,7 +80,6 @@ int proc_cpuinfo_init(void)
 {
     struct proc_dentry *dentry = proc_create_data("cpuinfo", 0, NULL, &file_ops, NULL);
     proc_release(dentry);
-
     return 0;
 }
 INIT_ENV_EXPORT(proc_cpuinfo_init);
