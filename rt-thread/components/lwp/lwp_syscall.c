@@ -220,11 +220,13 @@ const static struct rt_syscall_def func_table[] = {
     [199]=SYSCALL_SIGN(sys_socketpair),
     [157]=SYSCALL_SIGN(sys_setsid),
     [1024]=SYSCALL_SIGN(sys_board_shutdown),
-    // [78]=SYSCALL_SIGN(sys_readlinkat),
+    [78]=SYSCALL_SIGN(sys_readlinkat),
     [165]=SYSCALL_SIGN(sys_getrusage),
     [72]=SYSCALL_SIGN(sys_pselect6),
     [166]=SYSCALL_SIGN(sys_umask),
-    [285]=SYSCALL_SIGN(sys_copy_file_range)
+    [285]=SYSCALL_SIGN(sys_copy_file_range),
+    [76]=SYSCALL_SIGN(sys_splice),
+    [276]=SYSCALL_SIGN(sys_renameat2),
 };
 
 const void *lwp_get_sys_api(rt_uint32_t number)

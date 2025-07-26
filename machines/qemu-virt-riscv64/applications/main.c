@@ -83,17 +83,15 @@ int main(void)
     // read_proc_interrupts();
     // rt_kprintf("\n");
 
-    if(remove("/proc/interrupts") == 0)
-    {
-        rt_kprintf("removed :(\n");
-    }
+    // if(remove("/proc/interrupts") == 0)
+    // {
+    //     rt_kprintf("removed :(\n");
+    // }
 
-    if(rename("/proc/interrupts", "/proc/interrupts2") == 0)
-    {
-        rt_kprintf("renamed :(\n");
-    }
-
-    show_file_permissions("/proc/interrupts");
+    // if(rename("/proc/interrupts", "/proc/interrupts2") == 0)
+    // {
+    //     rt_kprintf("renamed :(\n");
+    // }
 
     // check();
     // rt_kprintf("1\n");

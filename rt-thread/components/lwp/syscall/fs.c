@@ -2774,6 +2774,8 @@ quit:
 ssize_t sys_splice(int fd_in, off_t *off_in, int fd_out, off_t *off_out, 
                    size_t len, unsigned int flags)
 {
+    ssize_t pwrite(int fd, const void *buf, size_t len, size_t offset);
+    ssize_t pread(int fd, void *buf, size_t len, size_t offset);
     ssize_t ret = -1;
     off_t *koff_in = RT_NULL, *koff_out = RT_NULL;
     off_t input_offset = 0, output_offset = 0;
@@ -3092,5 +3094,196 @@ sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_of
         ret = total_copied;
     }
 
+    return ret;
+}
+
+sysret_t sys_renameat2(int olddirfd, const char *oldpath, 
+                       int newdirfd, const char *newpath, 
+                       unsigned int flags)
+{
+    int ret = -1;
+    rt_size_t oldlen = 0, newlen = 0;
+    char *koldpath = RT_NULL, *knewpath = RT_NULL;
+    
+    // 定义支持的标志位（需要在头文件中定义这些常量）
+    #ifndef RENAME_NOREPLACE
+    #define RENAME_NOREPLACE    (1 << 0)
+    #endif
+    #ifndef RENAME_EXCHANGE
+    #define RENAME_EXCHANGE     (1 << 1)
+    #endif
+    #ifndef RENAME_WHITEOUT
+    #define RENAME_WHITEOUT     (1 << 2)
+    #endif
+    
+    // 检查标志位的有效性
+    if (flags & ~(RENAME_NOREPLACE | RENAME_EXCHANGE | RENAME_WHITEOUT))
+    {
+        return -EINVAL;
+    }
+    
+    // 检查标志位的兼容性
+    if ((flags & RENAME_EXCHANGE) && (flags & RENAME_NOREPLACE))
+    {
+        return -EINVAL;
+    }
+    
+    if ((flags & RENAME_WHITEOUT) && (flags & RENAME_EXCHANGE))
+    {
+        return -EINVAL;
+    }
+    
+    // 检查并复制 oldpath
+    oldlen = lwp_user_strlen(oldpath);
+    if (oldlen <= 0)
+    {
+        return -EFAULT;
+    }
+    
+    koldpath = (char *)kmem_get(oldlen + 1);
+    if (!koldpath)
+    {
+        return -ENOMEM;
+    }
+    
+    if (lwp_get_from_user(koldpath, (void *)oldpath, oldlen + 1) != (oldlen + 1))
+    {
+        kmem_put(koldpath);
+        return -EFAULT;
+    }
+    
+    // 检查并复制 newpath
+    newlen = lwp_user_strlen(newpath);
+    if (newlen <= 0)
+    {
+        kmem_put(koldpath);
+        return -EFAULT;
+    }
+    
+    knewpath = (char *)kmem_get(newlen + 1);
+    if (!knewpath)
+    {
+        kmem_put(koldpath);
+        return -ENOMEM;
+    }
+    
+    if (lwp_get_from_user(knewpath, (void *)newpath, newlen + 1) != (newlen + 1))
+    {
+        kmem_put(koldpath);
+        kmem_put(knewpath);
+        return -EFAULT;
+    }
+
+#ifdef RT_USING_DFS_V2
+    // 处理不同的标志位
+    if (flags & RENAME_EXCHANGE)
+    {
+        // 原子交换两个文件
+        struct stat oldstat, newstat;
+        int old_exists = 0, new_exists = 0;
+        
+        // 检查两个文件是否都存在
+        if (fstatat(olddirfd, koldpath, &oldstat, 0) == 0)
+        {
+            old_exists = 1;
+        }
+        if (fstatat(newdirfd, knewpath, &newstat, 0) == 0)
+        {
+            new_exists = 1;
+        }
+        
+        if (!old_exists || !new_exists)
+        {
+            ret = -ENOENT;
+            goto cleanup;
+        }
+        
+        // 简化的交换实现：使用临时文件名
+        char *temp_name = (char *)kmem_get(newlen + 32);
+        if (!temp_name)
+        {
+            ret = -ENOMEM;
+            goto cleanup;
+        }
+        
+        rt_snprintf(temp_name, newlen + 32, "%s.tmp.%d", knewpath, (int)rt_tick_get());
+        
+        // 执行三步交换
+        if (renameat(newdirfd, knewpath, newdirfd, temp_name) == 0 &&
+            renameat(olddirfd, koldpath, newdirfd, knewpath) == 0 &&
+            renameat(newdirfd, temp_name, olddirfd, koldpath) == 0)
+        {
+            ret = 0;
+        }
+        else
+        {
+            ret = GET_ERRNO();
+            // 尝试清理临时文件（忽略错误）
+            unlink(temp_name);
+        }
+        
+        kmem_put(temp_name);
+    }
+    else if (flags & RENAME_NOREPLACE)
+    {
+        // 检查目标文件是否存在
+        struct stat newstat;
+        if (fstatat(newdirfd, knewpath, &newstat, 0) == 0)
+        {
+            ret = -EEXIST;
+            goto cleanup;
+        }
+        
+        // 目标不存在，执行普通重命名
+        ret = renameat(olddirfd, koldpath, newdirfd, knewpath);
+        if (ret < 0)
+        {
+            ret = GET_ERRNO();
+        }
+    }
+    else if (flags & RENAME_WHITEOUT)
+    {
+        // 创建 whiteout 对象（简化实现）
+        ret = renameat(olddirfd, koldpath, newdirfd, knewpath);
+        if (ret < 0)
+        {
+            ret = GET_ERRNO();
+            goto cleanup;
+        }
+        
+        // 创建 whiteout 标记文件（简化实现）
+        size_t whiteout_len = rt_strlen(koldpath) + 16;
+        char *whiteout_name = (char *)kmem_get(whiteout_len);
+        if (whiteout_name)
+        {
+            rt_snprintf(whiteout_name, whiteout_len, ".wh.%s", koldpath);
+            int wh_fd = openat(olddirfd, whiteout_name, O_CREAT | O_WRONLY, 0644);
+            if (wh_fd >= 0)
+            {
+                close(wh_fd);
+            }
+            kmem_put(whiteout_name);
+        }
+    }
+    else
+    {
+        // 普通重命名（允许覆盖）
+        ret = renameat(olddirfd, koldpath, newdirfd, knewpath);
+        if (ret < 0)
+        {
+            ret = GET_ERRNO();
+        }
+    }
+
+cleanup:
+#else
+    // 如果没有 DFS_V2 支持，返回不支持错误
+    ret = -ENOSYS;
+#endif
+
+    // 清理内存
+    kmem_put(koldpath);
+    kmem_put(knewpath);
+    
     return ret;
 }

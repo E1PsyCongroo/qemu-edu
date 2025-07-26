@@ -111,7 +111,9 @@ sysret_t sys_fsync(int fd);
 sysret_t sys_sync();
 ssize_t sys_readlinkat(int dirfd, char *path, char *buf, size_t bufsz);
 sysret_t sys_pselect6(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, const struct timespec *timeout_ts, const sigset_t *sigmask);
-sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_off, size_t count, unsigned int _flags)
+sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_off, size_t count, unsigned int _flags);
+ssize_t sys_splice(int fd_in, off_t *off_in, int fd_out, off_t *off_out, size_t len, unsigned int flags);
+sysret_t sys_renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags);
 
 /* mm */
 rt_base_t sys_brk(void *addr);
