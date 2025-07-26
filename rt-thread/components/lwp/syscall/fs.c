@@ -2771,6 +2771,212 @@ quit:
     return ret;
 }
 
+ssize_t sys_splice(int fd_in, off_t *off_in, int fd_out, off_t *off_out, 
+                   size_t len, unsigned int flags)
+{
+    ssize_t ret = -1;
+    off_t *koff_in = RT_NULL, *koff_out = RT_NULL;
+    off_t input_offset = 0, output_offset = 0;
+    void *buffer = RT_NULL;
+    ssize_t bytes_read = 0, bytes_written = 0;
+    struct stat stat_in, stat_out;
+    int is_pipe_in = 0, is_pipe_out = 0;
+    
+    if (len == 0)
+    {
+        return 0;
+    }
+
+    if (fstat(fd_in, &stat_in) < 0)
+    {
+        return -EBADF;
+    }
+    if (fstat(fd_out, &stat_out) < 0)
+    {
+        return -EBADF;
+    }
+    
+    is_pipe_in = S_ISFIFO(stat_in.st_mode);
+    is_pipe_out = S_ISFIFO(stat_out.st_mode);
+    
+    if (is_pipe_in && is_pipe_out)
+    {
+        return -EINVAL;
+    }
+    if (!is_pipe_in && !is_pipe_out)
+    {
+        return -EINVAL;
+    }
+    
+    if (is_pipe_in)
+    {
+        if (off_in != RT_NULL)
+        {
+            return -EINVAL;
+        }
+    }
+    else
+    {
+        // fd_in不是管道，off_in必须不为NULL
+        if (off_in == RT_NULL)
+        {
+            return -EINVAL;
+        }
+        
+        // 检查用户空间可访问性并复制偏移
+        if (!lwp_user_accessable((void *)off_in, sizeof(off_t)))
+        {
+            return -EFAULT;
+        }
+        
+        if (lwp_get_from_user(&input_offset, off_in, sizeof(off_t)) != sizeof(off_t))
+        {
+            return -EFAULT;
+        }
+        
+        // 检查偏移是否为负
+        if (input_offset < 0)
+        {
+            return -EINVAL;
+        }
+        
+        // 检查偏移是否超过文件大小
+        if (input_offset >= stat_in.st_size)
+        {
+            return 0;
+        }
+    }
+    
+    if (is_pipe_out)
+    {
+        // fd_out是管道，off_out必须为NULL
+        if (off_out != RT_NULL)
+        {
+            return -EINVAL;
+        }
+    }
+    else
+    {
+        // fd_out不是管道，off_out必须不为NULL
+        if (off_out == RT_NULL)
+        {
+            return -EINVAL;
+        }
+        
+        // 检查用户空间可访问性并复制偏移
+        if (!lwp_user_accessable((void *)off_out, sizeof(off_t)))
+        {
+            return -EFAULT;
+        }
+        
+        if (lwp_get_from_user(&output_offset, off_out, sizeof(off_t)) != sizeof(off_t))
+        {
+            return -EFAULT;
+        }
+        
+        // 检查偏移是否为负
+        if (output_offset < 0)
+        {
+            return -EINVAL;
+        }
+    }
+    
+    // 如果是文件到管道，计算实际可读取的字节数
+    if (!is_pipe_in && is_pipe_out)
+    {
+        off_t remaining = stat_in.st_size - input_offset;
+        if (remaining < (off_t)len)
+        {
+            len = (size_t)remaining;
+        }
+    }
+    
+    // 分配缓冲区
+    buffer = kmem_get(len);
+    if (!buffer)
+    {
+        return -ENOMEM;
+    }
+    
+    // 执行数据传输
+    if (is_pipe_in)
+    {
+        // 从管道读取到文件
+        bytes_read = read(fd_in, buffer, len);
+        if (bytes_read < 0)
+        {
+            ret = GET_ERRNO();
+            goto cleanup;
+        }
+        
+        if (bytes_read == 0)
+        {
+            ret = 0;  // 管道已关闭
+            goto cleanup;
+        }
+        
+        // 写入到文件的指定偏移
+        bytes_written = pwrite(fd_out, buffer, bytes_read, output_offset);
+        if (bytes_written < 0)
+        {
+            ret = GET_ERRNO();
+            goto cleanup;
+        }
+        
+        // 更新输出偏移
+        output_offset += bytes_written;
+        if (lwp_put_to_user(off_out, &output_offset, sizeof(off_t)) != sizeof(off_t))
+        {
+            ret = -EFAULT;
+            goto cleanup;
+        }
+        
+        ret = bytes_written;
+    }
+    else
+    {
+        // 从文件读取到管道
+        bytes_read = pread(fd_in, buffer, len, input_offset);
+        if (bytes_read < 0)
+        {
+            ret = GET_ERRNO();
+            goto cleanup;
+        }
+        
+        if (bytes_read == 0)
+        {
+            ret = 0;  // 已到文件末尾
+            goto cleanup;
+        }
+        
+        // 写入到管道
+        bytes_written = write(fd_out, buffer, bytes_read);
+        if (bytes_written < 0)
+        {
+            ret = GET_ERRNO();
+            goto cleanup;
+        }
+        
+        // 更新输入偏移
+        input_offset += bytes_written;
+        if (lwp_put_to_user(off_in, &input_offset, sizeof(off_t)) != sizeof(off_t))
+        {
+            ret = -EFAULT;
+            goto cleanup;
+        }
+        
+        ret = bytes_written;
+    }
+    
+cleanup:
+    if (buffer)
+    {
+        kmem_put(buffer);
+    }
+    
+    return ret;
+}
+
 sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_off, size_t count, unsigned int _flags)
 {
     ssize_t ret = 0;
