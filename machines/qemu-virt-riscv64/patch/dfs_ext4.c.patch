@@ -1,0 +1,16 @@
+--- "./packages/lwext4-v2.0.0-dfsv2/ports/rtthread/dfs_ext copy.c"	2025-07-27 08:37:38.691969411 +0000
++++ ./packages/lwext4-v2.0.0-dfsv2/ports/rtthread/dfs_ext.c	2025-07-27 08:37:44.200890001 +0000
+@@ -961,10 +961,10 @@
+         ext4_ftruncate(&(ext_file->entry.file), offset);
+     }
+ 
+-    if (file->vnode->size < offset)
+-    {
++    // if (file->vnode->size < offset)
++    // {
+         file->vnode->size = offset;
+-    }
++    // }
+ 
+     return 0;
+ }
