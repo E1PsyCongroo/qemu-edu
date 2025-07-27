@@ -3168,6 +3168,12 @@ sysret_t sys_renameat2(int olddirfd, const char *oldpath,
     {
         return -EINVAL;
     }
+
+    if(strncmp(oldpath, "/proc", 5) == 0 || strncmp(newpath, "/proc", 5) == 0)
+    {
+        rt_kprintf("permission denied!\n");
+        return -EPERM;
+    }
     
     // 检查并复制 oldpath
     oldlen = lwp_user_strlen(oldpath);
@@ -3211,14 +3217,11 @@ sysret_t sys_renameat2(int olddirfd, const char *oldpath,
     }
 
 #ifdef RT_USING_DFS_V2
-    // 处理不同的标志位
     if (flags & RENAME_EXCHANGE)
     {
-        // 原子交换两个文件
         struct stat oldstat, newstat;
         int old_exists = 0, new_exists = 0;
         
-        // 检查两个文件是否都存在
         if (fstatat(olddirfd, koldpath, &oldstat, 0) == 0)
         {
             old_exists = 1;
@@ -3234,7 +3237,6 @@ sysret_t sys_renameat2(int olddirfd, const char *oldpath,
             goto cleanup;
         }
         
-        // 简化的交换实现：使用临时文件名
         char *temp_name = (char *)kmem_get(newlen + 32);
         if (!temp_name)
         {
@@ -3244,7 +3246,6 @@ sysret_t sys_renameat2(int olddirfd, const char *oldpath,
         
         rt_snprintf(temp_name, newlen + 32, "%s.tmp.%d", knewpath, (int)rt_tick_get());
         
-        // 执行三步交换
         if (renameat(newdirfd, knewpath, newdirfd, temp_name) == 0 &&
             renameat(olddirfd, koldpath, newdirfd, knewpath) == 0 &&
             renameat(newdirfd, temp_name, olddirfd, koldpath) == 0)
@@ -3254,7 +3255,6 @@ sysret_t sys_renameat2(int olddirfd, const char *oldpath,
         else
         {
             ret = GET_ERRNO();
-            // 尝试清理临时文件（忽略错误）
             unlink(temp_name);
         }
         
