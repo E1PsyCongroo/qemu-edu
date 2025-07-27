@@ -1,4 +1,8 @@
+#include <sys/stat.h>
+#define DBG_LEVEL DBG_INFO
+
 #include "rtconfig.h"
+#include "rtdbg.h"
 #include "rtthread.h"
 #include "rttypes.h"
 #include "sys/unistd.h"
@@ -2439,7 +2443,19 @@ sysret_t sys_ftruncate(int fd, size_t length)
 {
     int ret;
 
+    // if (length == 0)
+    // {
+    //     char buffer[256] = {0};
+    //     lseek(fd, 0, SEEK_SET);
+    //     write(fd, buffer, sizeof(buffer));
+    // }
+
     ret = ftruncate(fd, length);
+
+    struct stat stat;
+    fstat(fd, &stat);
+
+    // LOG_I("sys_ftruncate: fd %d, length %zu, file.size=%zu", fd, length, stat.st_size);
 
     return (ret < 0 ? GET_ERRNO() : ret);
 }
@@ -2979,7 +2995,7 @@ cleanup:
     return ret;
 }
 
-sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_off, size_t count, unsigned int _flags)
+sysret_t sys_copy_file_range(int in_fd, off_t *in_off_user, int out_fd, off_t *out_off_user, size_t count, unsigned int _flags)
 {
     ssize_t ret = 0;
     ssize_t total_copied = 0;
@@ -2991,7 +3007,7 @@ sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_of
         return 0;
     }
 
-    original_in_pos = lseek(in_fd, 0, SEEK_CUR);
+    original_in_pos  = lseek(in_fd , 0, SEEK_CUR);
     original_out_pos = lseek(out_fd, 0, SEEK_CUR);
     if (original_in_pos < 0 || original_out_pos < 0) 
     {
@@ -3001,24 +3017,47 @@ sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_of
     in_pos  = original_in_pos;
     out_pos = original_out_pos;
     
-    if (in_off != RT_NULL)
+    if (in_off_user != RT_NULL)
     {
-        if (!lwp_user_accessable(in_off, sizeof(off_t)))
+        if (!lwp_user_accessable(in_off_user, sizeof(off_t)))
         {
             return -EFAULT;
         }
         
-        lwp_get_from_user(&in_pos, in_off, sizeof(off_t));
+        lwp_get_from_user(&in_pos, in_off_user, sizeof(off_t));
     }
 
-    if (out_off != RT_NULL)
+    if (out_off_user != RT_NULL)
     {
-        if (!lwp_user_accessable(out_off, sizeof(off_t)))
+        if (!lwp_user_accessable(out_off_user, sizeof(off_t)))
         {
             return -EFAULT;
         }
         
-        lwp_get_from_user(&out_pos, out_off, sizeof(off_t));
+        lwp_get_from_user(&out_pos, out_off_user, sizeof(off_t));
+    }
+
+    struct stat out_stat;
+    fstat(out_fd, &out_stat);
+    // size_t out_file_size = lseek(out_fd, 0, SEEK_END);
+    size_t out_file_size = out_stat.st_size;
+    if (out_file_size < out_pos) 
+    {
+        lseek(out_fd, 0, SEEK_SET);
+        // write zero bytes to extend the file
+        size_t zero_bytes = out_pos - out_file_size;
+        char zero_buffer[1024] = {0};
+        size_t to_write = zero_bytes;
+        while (to_write > 0)
+        {
+            size_t write_size = to_write > sizeof(zero_buffer) ? sizeof(zero_buffer) : to_write;
+            ssize_t bytes_written = write(out_fd, zero_buffer, write_size);
+            if (bytes_written < 0)
+            {
+                return GET_ERRNO();
+            }
+            to_write -= bytes_written;
+        }
     }
 
     if (lseek(in_fd, in_pos, SEEK_SET) < 0)
@@ -3069,30 +3108,27 @@ sysret_t sys_copy_file_range(int in_fd, off_t *in_off, int out_fd, off_t *out_of
         total_copied += bytes_written;
     }
 
-    if (ret >= 0)
+    if (in_off_user != RT_NULL || ret < 0)
     {
-        if (in_off != RT_NULL)
+        off_t current_in_pos = lseek(in_fd, 0, SEEK_CUR);
+        if (current_in_pos >= 0)
         {
-            off_t current_in_pos = lseek(in_fd, 0, SEEK_CUR);
-            if (current_in_pos >= 0)
-            {
-                lwp_put_to_user(in_off, &current_in_pos, sizeof(off_t));
-            }
-            lseek(in_fd, original_in_pos, SEEK_SET);
+            lwp_put_to_user(in_off_user, &current_in_pos, sizeof(off_t));
         }
-        
-        if (out_off != RT_NULL)
-        {
-            off_t current_out_pos = lseek(out_fd, 0, SEEK_CUR);
-            if (current_out_pos >= 0)
-            {
-                lwp_put_to_user(out_off, &current_out_pos, sizeof(off_t));
-            }
-            lseek(out_fd, original_out_pos, SEEK_SET);
-        }
-        
-        ret = total_copied;
+        lseek(in_fd, original_in_pos, SEEK_SET);
     }
+    
+    if (out_off_user != RT_NULL || ret < 0)
+    {
+        off_t current_out_pos = lseek(out_fd, 0, SEEK_CUR);
+        if (current_out_pos >= 0)
+        {
+            lwp_put_to_user(out_off_user, &current_out_pos, sizeof(off_t));
+        }
+        lseek(out_fd, original_out_pos, SEEK_SET);
+    }
+        
+    ret = total_copied;
 
     return ret;
 }
