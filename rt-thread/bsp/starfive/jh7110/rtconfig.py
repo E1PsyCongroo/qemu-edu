@@ -2,7 +2,7 @@ import os
 
 # toolchains options
 ARCH        ='risc-v'
-CPU         ='riscv64'
+CPU         ='jh7110'
 VENDOR      ='starfive'
 CROSS_TOOL  ='gcc'
 

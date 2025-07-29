@@ -21,7 +21,7 @@ env['ASCOM'] = env['ASPPCOM']
 
 Export('RTT_ROOT')
 Export('rtconfig')
-rtconfig.CPU='riscv64'
+rtconfig.CPU='jh7110'
 rtconfig.ARCH='risc-v'
 
 # prepare building environment
