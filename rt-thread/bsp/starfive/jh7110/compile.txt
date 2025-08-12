@@ -1,0 +1,19 @@
+scons: Reading SConscript files ...
+Musl version: unknown
+use smart link.lds
+scons: done reading SConscript files.
+scons: Building targets ...
+scons: building associated VariantDir targets: build
+CC build/applications/main.o
+CC build/applications/rpmsg_echo/main.o
+CC build/applications/test/test_vector/test_vector.o
+CC build/driver/board.o
+CC build/driver/drv_uart.o
+CC build/driver/rpmsg_lite/common/llist.o
+CC build/driver/rpmsg_lite/rpmsg_env_rtthread.o
+CC build/driver/rpmsg_lite/rpmsg_lite.o
+CC build/driver/rpmsg_lite/rpmsg_ns.o
+CC build/driver/rpmsg_lite/rpmsg_platform.o
+CC build/driver/rpmsg_lite/rpmsg_queue.o
+CC build/driver/rpmsg_lite/virtio/virtqueue.o
+scons: building terminated because of errors.
