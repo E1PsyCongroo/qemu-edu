@@ -24,12 +24,9 @@ RT-Thread(Real Time-Thread), 是一款广泛运用于嵌入式的实时多线程
 
 ## 文档
 
-我们将文档划分为：
+我们提供了各部分文档和一个综合的总文档。
 
-[总文档](./docs/KernelX-介绍.md)
-[环境文档](./docs/KernelX-环境.md)
-[RT-Thread文档](./docs/RT-Thread-介绍.md)
-[组件文档](./docs/components/index.md)
+[总文档](./docs/总文档.md)
 
 ## 我们的工作
 
