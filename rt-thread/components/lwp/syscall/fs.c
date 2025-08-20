@@ -2024,6 +2024,85 @@ ssize_t sys_readlink(char *path, char *buf, size_t bufsz)
 }
 
 /**
+ * @brief Read the value of a symbolic link.
+ *
+ * This function reads the value of a symbolic link and stores it in the provided buffer. The value is the
+ * path to which the symbolic link points. If the symbolic link is too long to fit in the provided buffer,
+ * the function returns the number of bytes needed to store the entire path (not including the terminating null byte).
+ *
+ * @param[in]  path   The path of the symbolic link to read.
+ * @param[out] buf    A buffer where the symbolic link's target will be stored. The buffer must be large enough
+ *                    to hold the path of the symbolic link.
+ * @param[in]  bufsz  The size of the buffer `buf`. It specifies the maximum number of bytes to read.
+ *
+ * @return ssize_t The number of bytes written to `buf` (excluding the terminating null byte) on success.
+ *                 On failure, it returns a negative error code:
+ *                 - `-EINVAL`: Invalid path.
+ *                 - `-ENOMEM`: Insufficient memory to read the link.
+ *                 - `-EFAULT`: Invalid address for the `buf`.
+ *
+ * @note It will (silently) truncate the contents(to a length of bufsiz characters),
+ *       in case the buffer is too small to hold all of the contents.
+ *
+ * @see sys_symlink(), sys_lstat()
+ */
+ssize_t sys_readlinkat(int dirfd, char *path, char *buf, size_t bufsz)
+{
+    if (dirfd != AT_FDCWD)
+    {
+        LOG_W("dirfd != AT_FC_CWD");
+        return -ENOSYS; // Not implemented for dirfd other than AT_FDCWD
+    }
+    
+    size_t len, copy_len;
+    int    err, rtn;
+    char  *copy_path;
+
+    len = lwp_user_strlen(path);
+    if (len <= 0)
+    {
+        return -EFAULT;
+    }
+
+    if (!lwp_user_accessable(buf, bufsz))
+    {
+        return -EINVAL;
+    }
+
+    copy_path = (char *)rt_malloc(len + 1);
+    if (!copy_path)
+    {
+        return -ENOMEM;
+    }
+
+    copy_len            = lwp_get_from_user(copy_path, path, len);
+    copy_path[copy_len] = '\0';
+
+    char *link_fn = (char *)rt_malloc(DFS_PATH_MAX);
+    if (link_fn)
+    {
+        err = dfs_file_readlink(copy_path, link_fn, DFS_PATH_MAX);
+        if (err > 0)
+        {
+            buf[bufsz > err ? err : bufsz] = '\0';
+            rtn                            = lwp_put_to_user(buf, link_fn, bufsz > err ? err : bufsz);
+        }
+        else
+        {
+            rtn = -EIO;
+        }
+        rt_free(link_fn);
+    }
+    else
+    {
+        rtn = -ENOMEM;
+    }
+
+    rt_free(copy_path);
+    return rtn;
+}
+
+/**
  * @brief Get filesystem statistics.
  *
  * This function retrieves statistics about the filesystem at the specified path,
